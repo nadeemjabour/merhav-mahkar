@@ -1,0 +1,11 @@
+// Template and view unit checks; this does not replace browser QA.
+const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');
+const nodes=new Map();function node(k){if(!nodes.has(k))nodes.set(k,{innerHTML:'',textContent:'',open:false,dataset:{},append(){},showModal(){this.open=true},close(){this.open=false},addEventListener(){},elements:{}});return nodes.get(k)}
+let source=fs.readFileSync('index.html','utf8').split('<script>')[1].split('</script>')[0];source=source.slice(0,source.lastIndexOf('load().then('));
+const ctx=vm.createContext({console,crypto:require('node:crypto').webcrypto,document:{querySelector:node,querySelectorAll:()=>[],createElement:()=>({}),body:{append(){},classList:{toggle(){}}}},window:{},localStorage:{getItem:()=>null},setTimeout:()=>0,clearTimeout(){},Intl,Date,URL,FormData,fetch:()=>{throw Error('Unexpected network')}});vm.runInContext(source,ctx);
+vm.runInContext(`S={papers:[{id:'p1',title:'מחקר בדיקה',code:'מאמר01',language:'עברית',status:'כתיבה',work:'דרוש עדכון או תיקון',updated:now(),due:today()}],chapters:[{id:'c1',paperId:'p1',title:'מבוא',status:'הושלם',content:'תוכן',order:1}],tasks:[{id:'t1',paperId:'p1',title:'משימה',status:'לביצוע',work:'טרם התחיל',start:today(),due:today()}],notes:[{id:'n1',paperId:'p1',title:'הערה',content:'תוכן'}],files:[],tools:[],sources:[],opportunities:[],submissions:[],activity:[],drafts:[],rev:0};`,ctx);
+for(let view of ['dashboard','papers','tasks','gantt','tools','sources','opportunities','files','activity','settings','chat']){vm.runInContext(`view='${view}';paperId='';render()`,ctx);assert.ok(node('#body').innerHTML.length>50,view)}
+for(let tab of ['overview','chapters','tasks','gantt','notes','files','submissions']){vm.runInContext(`view='papers';paperId='p1';tab='${tab}';render()`,ctx);assert.ok(node('#body').innerHTML.length>50,tab)}
+for(let k of ['papers','chapters','tasks','notes','tools','sources','opportunities','submissions']){vm.runInContext(`edit('${k}')`,ctx);assert.ok(node('#modal').innerHTML.includes('שמירה'),k)}
+assert.ok(!source.includes('type="button" class="${cls}"')||source.includes('function action'));
+console.log('PASS: all 11 main views, 7 paper tabs and 8 record editor templates render. Browser interaction remains unverified.');

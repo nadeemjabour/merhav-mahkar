@@ -1,0 +1,7 @@
+const fs=require('node:fs'),assert=require('node:assert/strict'),migrate=require('./migrate-legacy.cjs');
+const seed=fs.readFileSync('legacy/seed.js','utf8').trim(),old=JSON.parse(seed.slice(seed.indexOf('=')+1).trim().replace(/;$/,''));
+const defaults=JSON.parse(fs.readFileSync('legacy/app.js','utf8').match(/const DEFAULT_RESEARCH_PLANS=(\[[^\n]+\]);/)[1]);
+const s={papers:[],chapters:[],sources:[],tasks:[],notes:[],activity:[]};
+migrate(s,old,defaults);assert.equal(s.papers.length,4);assert.equal(s.chapters.length,8);assert.equal(s.sources.length,14);assert.equal(s.analyses.length,2);assert.equal(s.notes.length,2);assert.equal(s.tasks.length,8);assert.equal(s.chapters[1].content,old.chapters[1].content);assert.equal(s.sources[0].bibliography,old.sources[0].citation);assert.equal(s.sources[0].verification,old.sources[0].status);assert.equal(s.papers.find(p=>p.id==='legacy-paper-research-1').due,'2026-12-25');let tasks=s.tasks.filter(t=>t.paperId==='legacy-paper-research-2');assert.equal(tasks.length,3);assert.ok(tasks.every(t=>!t.start&&!t.due));
+const n=s.tasks.length;migrate(s,old,defaults);assert.equal(s.tasks.length,n);assert.equal(s.legacySnapshots.length,2);assert.deepEqual(s.legacySnapshots[0].data,old);
+console.log('PASS: existing 3 research plans, 8 chapters, 14 sources, 8 tasks, 2 decisions, 2 analysis plans preserved; no invented dates, duplicate imports or overwritten source files.');

@@ -1,0 +1,11 @@
+const fs=require('node:fs'),path=require('node:path'),{DatabaseSync}=require('node:sqlite'),migrate=require('./migrate-legacy.cjs');
+const original='C:/Users/PSH-Nadeem/Documents/ChatGPT/פוסט',dir=path.join(__dirname,'data'),legacy=path.join(__dirname,'legacy');
+fs.mkdirSync(legacy,{recursive:true});
+for(let name of ['index.html','style.css','app.js','seed.js'])fs.copyFileSync(path.join(original,'postdoc-app','dist',name),path.join(legacy,name),fs.constants.COPYFILE_EXCL);
+const text=fs.readFileSync(path.join(legacy,'seed.js'),'utf8').trim(),old=JSON.parse(text.slice(text.indexOf('=')+1).trim().replace(/;$/,''));
+const js=fs.readFileSync(path.join(legacy,'app.js'),'utf8'),defaults=JSON.parse(js.match(/const DEFAULT_RESEARCH_PLANS=(\[[^\n]+\]);/)[1]);
+fs.mkdirSync(dir,{recursive:true});const db=new DatabaseSync(path.join(dir,'research.sqlite')),r=db.prepare('SELECT * FROM state WHERE id=1').get(),s=JSON.parse(r.json);if(s.papers.length)throw Error('Database is not empty; no records were replaced.');
+Object.assign(s,{drafts:s.drafts||[],requirements:s.requirements||[],analyses:s.analyses||[],legacySnapshots:s.legacySnapshots||[]});migrate(s,old,defaults);
+const serverDir=path.join(dir,'פוסט דוקטורט ומאמרים');for(let p of s.papers){let safe=v=>String(v).replace(/[<>:"/\\|?*\x00-\x1f]/g,'-').slice(0,100),d=path.join(serverDir,safe(p.code)+' - '+safe(p.folderName));for(let c of ['טיוטות ופרקים','מקורות','כלי מחקר','נתונים וניתוח','הגשות'])fs.mkdirSync(path.join(d,c),{recursive:true})}
+const general=path.join(serverDir,'כללי');fs.mkdirSync(general,{recursive:true});for(let name of ['02_initial_literature_search_APA7.docx','02_initial_literature_search_APA7.md','references.md']){let src=path.join(original,name);if(!fs.existsSync(src))continue;let dest=path.join(general,name);fs.copyFileSync(src,dest,fs.constants.COPYFILE_EXCL);s.files.push({id:require('node:crypto').randomUUID(),name,category:'מקורות',paperId:'',storage:path.relative(dir,dest),date:fs.statSync(src).mtime.toISOString(),size:fs.statSync(src).size,latest:true})}
+db.prepare('UPDATE state SET json=?,rev=rev+1 WHERE id=1').run(JSON.stringify(s));db.close();console.log(JSON.stringify({papers:s.papers.length,chapters:s.chapters.length,sources:s.sources.length,tasks:s.tasks.length,notes:s.notes.length,analyses:s.analyses.length,files:s.files.length}));
