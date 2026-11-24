@@ -11,7 +11,7 @@ for(const name of ['workspace-actions','chapter-structure','record-saving','pape
  if(name==='word'||name==='analysis-report')source=source.replace(/const \{createRequire\}[\s\S]*?const \{Document/, 'const {Document').replace("=r('docx');","=docx;");
  out+='modules["./'+name+'.cjs"]=(()=>{const module={exports:{}};'+source+';return module.exports})();\n';
 }
-let html=fs.readFileSync(path.join(base,'index.html'),'utf8');
+let html=require('./app/render-workspace.cjs')();
 html=html.replace(/async function openAppWindow\(\)\{[^\n]+/,"function openAppWindow(){window.open(location.href,'_blank','noopener');}");
 const analysisUi=fs.readFileSync(path.join(base,'analysis-workbench.js'),'utf8');
 html=html.replace('</script></html>','</script><script>'+analysisUi+'</script></html>');
