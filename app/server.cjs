@@ -1,5 +1,6 @@
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const {DatabaseSync}=require('node:sqlite');
+const renderWorkspace=require('./render-workspace.cjs');
 const modules=process.env.CODEX_PACKAGES||'C:/Users/PSH-Nadeem/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules';
 const docx=require(require.resolve('docx',{paths:[modules]})),JSZip=require(require.resolve('jszip',{paths:[modules]}));
 const root=path.resolve(process.env.POSTDOC_DATA||path.join(__dirname,'data')),folder=path.join(root,'פוסט דוקטורט ומאמרים');fs.mkdirSync(folder,{recursive:true});
@@ -19,12 +20,12 @@ function log(s,message,paperId){s.activity.unshift({id:crypto.randomUUID(),date:
 const id=()=>crypto.randomUUID();
 async function legacyWord(p,chapters){const {Document,Packer,Paragraph,TextRun,HeadingLevel,AlignmentType,PageNumber,Footer}=docx;const rtl=p.language!=='English';const font=p.language==='العربية'?'Arial':rtl?'David':'Times New Roman';const para=(text,heading)=>new Paragraph({bidirectional:rtl,alignment:rtl?AlignmentType.RIGHT:AlignmentType.LEFT,heading,spacing:{line:360,after:120},children:[new TextRun({text:String(text||'לא הוזן'),rightToLeft:rtl,font})]});const children=[para(p.title,HeadingLevel.TITLE)];for(let c of chapters){children.push(para(c.title,HeadingLevel.HEADING_1));for(let line of (c.content||'לא הוזן').split('\n'))children.push(para(line));}return Packer.toBuffer(new Document({styles:{default:{document:{run:{font,size:24},paragraph:{spacing:{line:360}}}},heading1:{run:{font,size:32,color:'345B83'}},heading2:{run:{font,size:28,color:'345B83'}}},sections:[{properties:{page:{margin:{top:1440,bottom:1440,left:1440,right:1440}}},footers:{default:new Footer({children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({children:[PageNumber.CURRENT]})]})]})},children}]}));}
 const word=require('./word.cjs');
-const sessions=new Set();const port=Number(process.env.PORT||4317);
+const sessions=new Set();let port=Number(process.env.PORT||4317);
 function json(res,code,data){res.writeHead(code,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data))}
 async function rawBody(req){let chunks=[],size=0;for await(let c of req){size+=c.length;if(size>2*1024*1024*1024)throw Error('הגיבוי גדול מ־2GB');chunks.push(c)}return Buffer.concat(chunks)}
 async function body(req){let parts=[],size=0;for await(let c of req){size+=c.length;if(size>80*1024*1024)throw Error('הקובץ גדול מדי (עד 50MB)');parts.push(c)}return JSON.parse(Buffer.concat(parts).toString()||'{}')}
 const server=http.createServer(async(req,res)=>{try{const u=new URL(req.url,'http://localhost');if(!['localhost','127.0.0.1'].includes((req.headers.host||'').split(':')[0]))return json(res,403,{error:'גישה מקומית בלבד'});if(req.headers.origin&&!['http://localhost:'+port,'http://127.0.0.1:'+port].includes(req.headers.origin))return json(res,403,{error:'מקור לא מורשה'});
-if(u.pathname==='/'){let token=crypto.randomBytes(24).toString('hex');sessions.add(token);res.setHeader('Set-Cookie',`postdoc=${token}; HttpOnly; SameSite=Strict; Path=/`);res.setHeader('Content-Type','text/html; charset=utf-8');return res.end(fs.readFileSync(path.join(__dirname,'index.html')))}
+if(u.pathname==='/'){let token=crypto.randomBytes(24).toString('hex');sessions.add(token);res.setHeader('Set-Cookie',`postdoc=${token}; HttpOnly; SameSite=Strict; Path=/`);res.setHeader('Content-Type','text/html; charset=utf-8');return res.end(renderWorkspace())}
 if(!sessions.has((req.headers.cookie||'').match(/postdoc=([a-f0-9]+)/)?.[1]))return json(res,403,{error:'פתחו את האפליקציה מחדש'});
 if(req.method==='GET'&&u.pathname.startsWith('/legacy/')){let name=u.pathname.slice('/legacy/'.length)||'index.html';if(!['index.html','style.css','app.js','seed.js'].includes(name))throw Error('לא נמצא');res.setHeader('Content-Type',name.endsWith('.css')?'text/css; charset=utf-8':name.endsWith('.js')?'text/javascript; charset=utf-8':'text/html; charset=utf-8');return res.end(fs.readFileSync(path.join(__dirname,'legacy',name)))}
 if(req.method==='POST'&&u.pathname==='/api/import-legacy'){let b=await body(req),s=read();let defaults=[];let source=path.join(__dirname,'legacy','app.js');if(fs.existsSync(source))defaults=JSON.parse(fs.readFileSync(source,'utf8').match(/const DEFAULT_RESEARCH_PLANS=(\[[^\n]+\]);/)[1]);require('./migrate-legacy.cjs')(s,b.backup,defaults);for(let p of s.papers)paperDir(p);return json(res,200,save(s,s.rev))}
@@ -45,4 +46,17 @@ if(req.method==='GET'&&u.pathname==='/api/backup'){let s={...read(),conversation
 if(req.method==='POST'&&u.pathname==='/api/restore'){let binary=req.headers['content-type']==='application/zip',payload=binary?await rawBody(req):Buffer.from((await body(req)).data,'base64'),zip=await JSZip.loadAsync(payload),s=JSON.parse(await zip.file('state.json').async('string'));for(let k of Object.keys(blank()))if(!Array.isArray(s[k]))throw Error('גיבוי לא תקין');if(s.conversations!==undefined&&!Array.isArray(s.conversations))throw Error('היסטוריית שיחה לא תקינה');let staged=[];for(let f of s.files){if(!/^[a-f0-9-]+$/.test(f.id))throw Error('מזהה לא תקין');let entry=zip.file('files/'+f.id);if(!entry)throw Error('חסר קובץ בגיבוי');let dest=location(f),buf=await entry.async('nodebuffer');if(fs.existsSync(dest)&&!fs.readFileSync(dest).equals(buf))throw Error('התנגשות קבצים: לא בוצע שחזור');staged.push([dest,buf]);}const old=read(),manifest=zip.file('backup.json')?JSON.parse(await zip.file('backup.json').async('string')):{scope:'all'};if(manifest.scope==='paper')s=require('./paper-backup.cjs').mergePaperBackup(old,s,manifest.paperId);fs.writeFileSync(path.join(root,'before-restore-'+Date.now()+'.json'),JSON.stringify({...old,conversations:readChats()}));for(let [dest,buf] of staged){fs.mkdirSync(path.dirname(dest),{recursive:true});if(!fs.existsSync(dest))fs.writeFileSync(dest,buf,{flag:'wx'});}log(s,manifest.scope==='paper'?'שוחזר ומוזג גיבוי מאמר':'שוחזר גיבוי',manifest.paperId);let restoredChats=s.conversations;delete s.conversations;db.exec('BEGIN IMMEDIATE');try{let result=save(s,old.rev);if(Array.isArray(restoredChats)){if(manifest.scope!=='paper')db.exec('DELETE FROM research_chats');for(let chat of restoredChats){if(manifest.scope==='paper'&&chat.paperId!==manifest.paperId)throw Error('שיחה אינה שייכת למאמר בגיבוי');if(typeof chat.id!=='string'||!Array.isArray(chat.messages))throw Error('שיחה בגיבוי אינה תקינה');db.prepare('INSERT INTO research_chats(id,json) VALUES(?,?) ON CONFLICT(id) DO UPDATE SET json=excluded.json').run(chat.id,JSON.stringify(chat))}}db.exec('COMMIT');return json(res,200,result)}catch(e){db.exec('ROLLBACK');throw e}}
 return json(res,404,{error:'לא נמצא'});
 }catch(e){console.error(e.message);if(res.headersSent){res.destroy(e);return}json(res,400,{error:e.message})}});
-server.listen(port,'127.0.0.1',()=>console.log('Postdoc: http://127.0.0.1:'+port));
+server.on('error', error => {
+  console.error(`Merhav Mahkar could not start: ${error.message}`);
+  process.exitCode = 1;
+});
+server.listen(port, '127.0.0.1', () => {
+  port = server.address().port;
+  const url = `http://127.0.0.1:${port}/`;
+  console.log('Postdoc: ' + url);
+  if (process.argv.includes('--open-browser')) {
+    require('./standalone-window.cjs')(url).catch(error => {
+      console.error('Open ' + url + ' in your browser. ' + error.message);
+    });
+  }
+});
