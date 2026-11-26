@@ -10,6 +10,15 @@ test('anonymous root shows sign-in and APIs require authentication',async()=>{
  const root=await h(req());assert.equal(root.status,200);assert.match(await root.text(),/כניסה/);
  const api=await h(req('/api/state'));assert.equal(api.status,401);assert.equal(api.headers.get('cache-control'),'private, no-store');
 });
+test('a rewritten HTML homepage renders the sign-in page while JSON requests require authentication', async () => {
+ const handle = createHandler({env, fetcher: () => { throw Error('unexpected request'); }});
+ const home = await handle(req('/api/workspace', {headers: {accept: 'text/html,application/xhtml+xml'}}));
+ assert.equal(home.status, 200);
+ assert.match(home.headers.get('content-type'), /text\/html/);
+ assert.match(await home.text(), /כניסה/);
+ const api = await handle(req('/api/workspace', {headers: {accept: 'application/json'}}));
+ assert.equal(api.status, 401);
+});
 test('cross-site mutations are rejected before reading credentials',async()=>{
  const h=createHandler({env,fetcher:()=>{throw Error('unexpected request')}});
  const result=await h(req('/auth/login',{method:'POST',headers:{Origin:'https://other.example'},body:'{}'}));
