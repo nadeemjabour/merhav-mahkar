@@ -6,5 +6,10 @@ module.exports = function renderWorkspace() {
   const marker = '<!-- workspace-theme -->';
   if (!html.includes(marker)) throw new Error('Workspace theme marker is missing');
   const css = fs.readFileSync(path.join(__dirname, 'workspace-theme.css'), 'utf8');
-  return html.replace(marker, () => '<style id="workspace-theme">\n' + css + '\n</style>');
+  const studioMarker = '/* workspace-studio */';
+  if (!html.includes(studioMarker)) throw new Error('Workspace studio marker is missing');
+  const studio = fs.readFileSync(path.join(__dirname, 'aurora-studio.js'), 'utf8');
+  return html
+    .replace(marker, () => '<style id="workspace-theme">\n' + css + '\n</style>')
+    .replace(studioMarker, () => studio);
 };
