@@ -1,16 +1,203 @@
-export const escapeHtml=value=>String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export function authPage({pending=false,email='',confirmed=false}={}) {
- return `<!doctype html><html lang="he" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>כניסה למרחב המחקר</title>
- <style>*{box-sizing:border-box}body{margin:0;font:16px system-ui,sans-serif;background:#f5f7f8;color:#20343a;min-height:100vh;display:grid;place-items:center;padding:24px}main{width:min(100%,440px);padding:36px;background:white;border:1px solid #dce5e7;border-radius:22px;box-shadow:0 16px 55px #20343a10}h1{font-size:28px;margin:0 0 12px}p{line-height:1.7;color:#53676d}label{display:block;margin-top:18px}input{width:100%;padding:13px;border:1px solid #bfcfd3;border-radius:10px;font:inherit;margin-top:7px;direction:ltr;text-align:left}button{padding:13px 20px;border:0;border-radius:10px;font:inherit;cursor:pointer;background:#245b65;color:white}button:disabled{opacity:.6;cursor:wait}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}.secondary{background:#eef3f4;color:#245b65}#message{min-height:24px;margin-top:18px;white-space:pre-line}a{color:#245b65}</style>
- <main><h1>מרחב המחקר</h1>${pending?`<p>החשבון ${escapeHtml(email)} מחובר, אך אין לו עדיין הרשאה למרחב הזה.</p><p>הנתונים נשארים פרטיים. אפשר להתחבר עם החשבון שאושר.</p><button id="logout">יציאה מהחשבון</button>`:
- `<p>התחברו כדי לפתוח את המחקרים, הקבצים והניתוחים השמורים.</p>${confirmed?'<p>לאחר אימות כתובת הדוא״ל אפשר להתחבר כאן.</p>':''}<form id="login"><label>כתובת דוא״ל<input name="email" type="email" required autocomplete="username" placeholder="name@example.com"></label><label>סיסמה<input name="password" type="password" required minlength="8" autocomplete="current-password"></label><div class="actions"><button type="submit">כניסה</button><button type="button" class="secondary" id="signup">יצירת חשבון</button></div></form><p>יצירת חשבון אינה מעניקה גישה למחקרים ללא הרשאה.</p>`}<p id="message" role="status" aria-live="polite"></p></main>
- <script>
- // Confirmation tokens are not retained in browser history or local storage.
- if(location.hash)history.replaceState(null,'',location.pathname);
- const message=document.querySelector('#message');
- async function action(path,data){const buttons=[...document.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);message.textContent='רגע…';try{const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data||{})});const out=await r.json();if(!r.ok)throw Error(out.error||'הפעולה לא הושלמה');if(out.redirect){location.assign(out.redirect);return}message.textContent=out.message||'';}catch(e){message.textContent=e.message}finally{buttons.forEach(b=>b.disabled=false)}}
- const form=document.querySelector('#login');
- if(form){form.onsubmit=e=>{e.preventDefault();action('/auth/login',Object.fromEntries(new FormData(form)))};document.querySelector('#signup').onclick=()=>{if(form.reportValidity())action('/auth/signup',Object.fromEntries(new FormData(form)))}}
- document.querySelector('#logout')?.addEventListener('click',()=>action('/auth/logout'));
- </script></html>`;
+import { fieldDiagram } from './auth-art.mjs';
+import { authStyle } from './auth-style.mjs';
+
+export const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+})[c]);
+
+const copy = {
+  he: {
+    title: 'כניסה למרחב המחקר', brand: 'מרחב המחקר', signIn: 'כניסה', signUp: 'יצירת חשבון',
+    heading: 'כניסה למרחב', intro: 'התחברו עם כתובת הדוא״ל שאושרה למרחב המחקר שלכם.',
+    email: 'כתובת דוא״ל', password: 'סיסמה', access: 'הגישה למחקרים זמינה לחשבונות שאושרו.',
+    pending: 'ממתינים להרשאה', signedIn: 'התחברתם עם החשבון', pendingInfo: 'לחשבון הזה עדיין אין הרשאה למרחב. אפשר לצאת ולהתחבר עם החשבון שאושר.',
+    logout: 'יציאה מהחשבון', confirmed: 'לאחר אימות כתובת הדוא״ל אפשר להתחבר כאן.',
+    atlas: 'אטלס המחקר', atlasIntro: 'המחקרים, המקורות והניתוחים שלכם במקום אחד.',
+    language: 'שפת הממשק', dark: 'מעבר למצב כהה', light: 'מעבר למצב בהיר',
+    wait: 'רגע…', network: 'לא ניתן להשלים את הבקשה. בדקו את החיבור ונסו שוב.',
+    welcomeMail: 'בדקו את הדוא״ל, אשרו את הכתובת ואז חזרו לכאן לכניסה.',
+    credentials: 'הזינו כתובת דוא״ל תקינה וסיסמה באורך 8 תווים לפחות.',
+    wrongLogin: 'הכניסה לא הצליחה. בדקו את הפרטים וודאו שאישרתם את כתובת הדוא״ל.',
+    wrongSignup: 'לא ניתן ליצור חשבון כרגע. בדקו את הכתובת והסיסמה.',
+    rate: 'בוצעו ניסיונות רבים. נסו שוב בעוד מספר דקות.',
+    service: 'חיבור המרחב עדיין לא הוגדר.', origin: 'מקור הבקשה לא מורשה.', tooLarge: 'הבקשה גדולה מדי.',
+    invalidEmail: 'הזינו כתובת דוא״ל תקינה.', invalidPassword: 'הזינו סיסמה באורך 8 תווים לפחות.',
+    retry: 'הפעולה לא הושלמה. נסו שוב.'
+  },
+  en: {
+    title: 'Sign in to Research Workspace', brand: 'Research Workspace', signIn: 'Sign in', signUp: 'Create account',
+    heading: 'Sign in', intro: 'Use the email address approved for your research workspace.',
+    email: 'Email address', password: 'Password', access: 'Research is available to approved accounts.',
+    pending: 'Access pending', signedIn: 'You are signed in as', pendingInfo: 'This account is waiting for workspace access. You can sign out and use an approved account.',
+    logout: 'Sign out', confirmed: 'Once you have confirmed your email address, you can sign in here.',
+    atlas: 'Research atlas', atlasIntro: 'Your studies, sources and analyses in one place.',
+    language: 'Interface language', dark: 'Switch to dark theme', light: 'Switch to light theme',
+    wait: 'One moment…', network: 'Could not reach the workspace. Check your connection and try again.',
+    welcomeMail: 'Check your email, confirm your address, then return here to sign in.',
+    credentials: 'Enter a valid email address and a password of at least 8 characters.',
+    wrongLogin: 'Sign-in failed. Check your details and make sure you confirmed your email address.',
+    wrongSignup: 'Could not create the account. Check the email address and password.',
+    rate: 'Too many attempts. Please try again in a few minutes.',
+    service: 'The workspace connection has not been configured yet.', origin: 'This request came from an unauthorized origin.', tooLarge: 'The request is too large.',
+    invalidEmail: 'Enter a valid email address.', invalidPassword: 'Enter a password of at least 8 characters.',
+    retry: 'The request could not be completed. Please try again.'
+  },
+  ar: {
+    title: 'تسجيل الدخول إلى مساحة البحث', brand: 'مساحة البحث', signIn: 'دخول', signUp: 'إنشاء حساب',
+    heading: 'تسجيل الدخول', intro: 'سجّل الدخول باستخدام عنوان البريد الإلكتروني المعتمد لمساحة البحث.',
+    email: 'البريد الإلكتروني', password: 'كلمة المرور', access: 'الأبحاث متاحة للحسابات المعتمدة.',
+    pending: 'بانتظار الموافقة', signedIn: 'سجّلت الدخول بالحساب', pendingInfo: 'هذا الحساب بانتظار صلاحية الدخول إلى المساحة. يمكنك تسجيل الخروج واستخدام حساب معتمد.',
+    logout: 'تسجيل الخروج', confirmed: 'يمكنك تسجيل الدخول هنا بعد تأكيد عنوان بريدك الإلكتروني.',
+    atlas: 'أطلس الأبحاث', atlasIntro: 'دراساتك ومصادرك وتحليلاتك في مكان واحد.',
+    language: 'لغة الواجهة', dark: 'التبديل إلى المظهر الداكن', light: 'التبديل إلى المظهر الفاتح',
+    wait: 'لحظة من فضلك…', network: 'تعذّر الاتصال بمساحة البحث. تحقّق من اتصالك وحاول مجددًا.',
+    welcomeMail: 'تحقّق من بريدك الإلكتروني وأكّد عنوانك، ثم عُد إلى هنا لتسجيل الدخول.',
+    credentials: 'أدخل بريدًا إلكترونيًا صالحًا وكلمة مرور تتألف من 8 أحرف على الأقل.',
+    wrongLogin: 'تعذّر تسجيل الدخول. تحقّق من بياناتك وتأكّد من تأكيد بريدك الإلكتروني.',
+    wrongSignup: 'تعذّر إنشاء الحساب. تحقّق من البريد الإلكتروني وكلمة المرور.',
+    rate: 'تجاوزت عدد المحاولات المسموح به. حاول مجددًا بعد بضع دقائق.',
+    service: 'لم يُضبط اتصال مساحة البحث بعد.', origin: 'مصدر هذا الطلب غير مصرّح به.', tooLarge: 'حجم الطلب كبير جدًا.',
+    invalidEmail: 'أدخل عنوان بريد إلكتروني صالحًا.', invalidPassword: 'أدخل كلمة مرور تتألف من 8 أحرف على الأقل.',
+    retry: 'تعذّر إكمال الطلب. حاول مجددًا.'
+  }
+};
+
+const apiMessages = {
+  'בדקו את הדוא״ל, אשרו את הכתובת, ואז חזרו לכאן לכניסה.': 'welcomeMail',
+  'יש להזין דוא״ל וסיסמה באורך 8 תווים לפחות': 'credentials',
+  'בוצעו ניסיונות רבים. נסו שוב בעוד מספר דקות.': 'rate',
+  'לא ניתן ליצור חשבון כרגע. בדקו את הכתובת והסיסמה.': 'wrongSignup',
+  'הכניסה לא הצליחה. בדקו את הפרטים ואמתו את כתובת הדוא״ל.': 'wrongLogin',
+  'חיבור המרחב עדיין לא הוגדר': 'service',
+  'מקור בקשה לא מורשה': 'origin',
+  'הבקשה גדולה מדי': 'tooLarge'
+};
+
+const mark = '<svg viewBox="0 0 40 40" aria-hidden="true" focusable="false"><rect width="40" height="40" rx="11" fill="#194e4c"/><g fill="none" stroke="#eadbbb" stroke-width="1.6" stroke-linejoin="round"><path d="m7 22 13-7 13 7-13 7-13-7Zm0-5 13-7 13 7-13 7-13-7Z"/></g><circle cx="30" cy="10" r="3" fill="#f0b76e"/></svg>';
+const globe = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg>';
+const themes = '<svg class="moon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M20.5 14.6a8.8 8.8 0 0 1-11-11 9 9 0 1 0 11 11Z"/></svg><svg class="sun" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M19 5l-1.5 1.5m-11 11L5 19"/></svg>';
+
+const initialize = `(() => {
+  const root = document.documentElement;
+  let language = 'he';
+  let theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  try {
+    const savedLanguage = localStorage.getItem('merhav-language');
+    const savedTheme = localStorage.getItem('merhav-theme');
+    if (['he','ar','en'].includes(savedLanguage)) language = savedLanguage;
+    if (['light','dark'].includes(savedTheme)) theme = savedTheme;
+  } catch {}
+  root.lang = language;
+  root.dir = language === 'en' ? 'ltr' : 'rtl';
+  root.dataset.theme = theme;
+  if (location.hash) history.replaceState(null, '', location.pathname);
+})();`;
+
+function localized(key) {
+  return '<span data-copy="' + key + '">' + escapeHtml(copy.he[key]) + '</span>';
+}
+
+export function authPage({pending = false, email = '', confirmed = false} = {}) {
+  const content = pending
+    ? `<h1>${localized('pending')}</h1><p class="lead">${localized('signedIn')} <bdi class="account">${escapeHtml(email)}</bdi></p><p class="notice">${localized('pendingInfo')}</p><button class="action" id="logout" type="button">${localized('logout')}</button>`
+    : `<h1>${localized('heading')}</h1><p class="lead">${localized('intro')}</p>
+       ${confirmed ? '<p class="notice">' + localized('confirmed') + '</p>' : ''}
+       <form id="login" method="post" action="/auth/login">
+         <div class="fields"><label>${localized('email')}<input name="email" type="email" required autocomplete="username" placeholder="name@example.com"></label>
+         <label>${localized('password')}<input name="password" type="password" required minlength="8" autocomplete="current-password"></label></div>
+         <div class="actions"><button type="submit" class="action">${localized('signIn')}</button><button type="button" class="action secondary" id="signup">${localized('signUp')}</button></div>
+       </form><p class="note">${localized('access')}</p>`;
+
+  return `<!doctype html>
+<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${copy.he.title}</title>
+<script>${initialize}</script><style>${authStyle}</style></head>
+<body><div class="shell">
+<header><div class="brand">${mark}${localized('brand')}</div><div class="preferences">
+<label class="control">${globe}<select id="language" aria-label="${copy.he.language}"><option value="he" lang="he">עברית</option><option value="ar" lang="ar">العربية</option><option value="en" lang="en">English</option></select></label>
+<button id="theme" class="control theme" type="button" aria-label="${copy.he.dark}" title="${copy.he.dark}">${themes}</button></div></header>
+<main><div class="spread"><section class="paper"><div class="form-content">${content}<p id="message" role="status" aria-live="polite"></p></div></section>
+<aside class="atlas">${fieldDiagram}<div class="atlas-caption"><h2>${localized('atlas')}</h2><p>${localized('atlasIntro')}</p></div></aside></div></main></div>
+<script>
+(() => {
+  const dictionary = ${JSON.stringify(copy)};
+  const responseKeys = ${JSON.stringify(apiMessages)};
+  const root = document.documentElement;
+  const languageSelect = document.querySelector('#language');
+  const themeControl = document.querySelector('#theme');
+  const message = document.querySelector('#message');
+  const form = document.querySelector('#login');
+  let messageKey = '';
+  const translate = key => dictionary[root.lang][key];
+  function remember(key, value) {
+    try { localStorage.setItem(key, value); } catch {}
+  }
+  function refreshLabels() {
+    document.title = translate('title');
+    languageSelect.value = root.lang;
+    languageSelect.setAttribute('aria-label', translate('language'));
+    const themeLabel = translate(root.dataset.theme === 'dark' ? 'light' : 'dark');
+    themeControl.setAttribute('aria-label', themeLabel);
+    themeControl.title = themeLabel;
+    document.querySelectorAll('[data-copy]').forEach(node => {
+      node.textContent = translate(node.dataset.copy);
+    });
+    message.textContent = messageKey ? translate(messageKey) : '';
+  }
+  languageSelect.addEventListener('change', () => {
+    root.lang = languageSelect.value;
+    root.dir = root.lang === 'en' ? 'ltr' : 'rtl';
+    remember('merhav-language', root.lang);
+    if (form) Array.from(form.querySelectorAll('input')).forEach(input => input.setCustomValidity(''));
+    refreshLabels();
+  });
+  themeControl.addEventListener('click', () => {
+    root.dataset.theme = root.dataset.theme === 'light' ? 'dark' : 'light';
+    remember('merhav-theme', root.dataset.theme);
+    refreshLabels();
+  });
+  function setStatus(key, error = false) {
+    messageKey = key;
+    message.dataset.error = String(error);
+    message.textContent = translate(key);
+  }
+  async function action(path, data) {
+    const buttons = document.querySelectorAll('.action');
+    buttons.forEach(button => { button.disabled = true; });
+    setStatus('wait');
+    try {
+      const response = await fetch(path, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data || {})
+      });
+      const out = await response.json();
+      if (!response.ok) {
+        setStatus(responseKeys[out.error] || 'retry', true);
+      } else if (out.redirect) {
+        location.assign(out.redirect);
+      } else {
+        setStatus(responseKeys[out.message] || 'retry');
+      }
+    } catch {
+      setStatus('network', true);
+    } finally {
+      buttons.forEach(button => { button.disabled = false; });
+    }
+  }
+  if (form) {
+    for (const input of form.querySelectorAll('input')) {
+      input.addEventListener('input', () => input.setCustomValidity(''));
+      input.addEventListener('invalid', () => input.setCustomValidity(translate(input.type === 'email' ? 'invalidEmail' : 'invalidPassword')));
+    }
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      action('/auth/login', Object.fromEntries(new FormData(form)));
+    });
+    document.querySelector('#signup').addEventListener('click', () => {
+      if (form.reportValidity()) action('/auth/signup', Object.fromEntries(new FormData(form)));
+    });
+  }
+  document.querySelector('#logout')?.addEventListener('click', () => action('/auth/logout'));
+  refreshLabels();
+})();
+</script></body></html>`;
 }
