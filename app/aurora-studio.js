@@ -17,13 +17,18 @@ function sourceCredit(source) {
   return [source.authors, source.year, source.journal].filter(Boolean).join(' · ');
 }
 
+function sourceStatusLabel(status) {
+  const statuses = schemas.sources.find(([key]) => key === 'status')[2];
+  return statuses.includes(status) ? uiText(status) : status;
+}
+
 function sourcePick(source, selected = false) {
   const credit = sourceCredit(source);
   return `<button type="button" class="evidence-item" data-source-id="${esc(source.id)}" aria-current="${selected}">
     <span class="evidence-icon" aria-hidden="true">${workspaceIcon('sources')}</span>
-    <span class="evidence-item-text"><strong dir="auto">${esc(source.title || 'מקור ללא כותרת')}</strong>
+    <span class="evidence-item-text"><strong dir="auto">${esc(source.title || uiText('מקור ללא כותרת'))}</strong>
     ${credit ? `<small dir="auto">${esc(credit)}</small>` : ''}</span>
-    ${source.status ? `<span class="evidence-status">${esc(source.status)}</span>` : ''}
+    ${source.status ? `<span class="evidence-status">${esc(sourceStatusLabel(source.status))}</span>` : ''}
   </button>`;
 }
 
@@ -38,29 +43,29 @@ function sourceDetail(source) {
   const file = source.fileId && S.files.find(file => file.id === source.fileId && !file.sensitive);
   const external = /^https?:\/\//i.test(source.link || '');
   return `<article class="evidence-reading">
-    <h3 dir="auto">${esc(source.title || 'מקור ללא כותרת')}</h3>
+    <h3 dir="auto">${esc(source.title || uiText('מקור ללא כותרת'))}</h3>
     ${credit ? `<p class="evidence-credit" dir="auto">${esc(credit)}</p>` : ''}
-    ${source.status ? `<span class="evidence-status">${esc(source.status)}</span>` : ''}
+    ${source.status ? `<span class="evidence-status">${esc(sourceStatusLabel(source.status))}</span>` : ''}
     ${details.length ? `<dl>${details.map(([label, value]) =>
-      `<div><dt>${label}</dt><dd dir="auto">${esc(value)}</dd></div>`).join('')}</dl>` : ''}
+      `<div><dt>${esc(uiText(label))}</dt><dd dir="auto">${esc(value)}</dd></div>`).join('')}</dl>` : ''}
     ${external || file ? `<div class="evidence-links">
-      ${external ? `<a href="${esc(source.link)}" target="_blank" rel="noopener noreferrer">פתיחת המקור החיצוני ↗</a>` : ''}
-      ${file ? `<a href="/api/file/${encodeURIComponent(file.id)}">${esc(file.name || 'הורדת הקובץ')}</a>` : ''}
+      ${external ? `<a href="${esc(source.link)}" target="_blank" rel="noopener noreferrer">${uiText("פתיחת המקור החיצוני ↗")}</a>` : ''}
+      ${file ? `<a href="/api/file/${encodeURIComponent(file.id)}">${esc(file.name || uiText('הורדת הקובץ'))}</a>` : ''}
     </div>` : ''}
   </article>`;
 }
 
 function sourceEditButton(source) {
-  return `<button type="button" class="evidence-edit" data-edit-source="${esc(source.id)}">${workspaceIcon('writing')} עריכת מקור</button>`;
+  return `<button type="button" class="evidence-edit" data-edit-source="${esc(source.id)}">${workspaceIcon('writing')} ${uiText("עריכת מקור")}</button>`;
 }
 
 function auroraSourceToolbar() {
   if (sort === 'due') sort = 'updated';
   const options = schemas.sources.find(([key]) => key === 'status')[2];
   return `<div class="toolbar evidence-filters">
-    <label>חיפוש במקורות<input type="search" dir="auto" value="${esc(q)}" placeholder="כותרת, מחבר או מילת מפתח" oninput="q=this.value;renderBody()"></label>
-    <label>מצב קריאה<select onchange="filter=this.value;renderBody()"><option value="">כל המצבים</option>${opts(options)}</select></label>
-    <label>מיון<select onchange="sort=this.value;renderBody()"><option value="updated" ${sort !== 'title'?'selected':''}>עדכון אחרון</option><option value="title" ${sort === 'title'?'selected':''}>כותרת</option></select></label>
+    <label>${uiText("חיפוש במקורות")}<input type="search" dir="auto" value="${esc(q)}" placeholder="${uiText("כותרת, מחבר או מילת מפתח")}" oninput="q=this.value;renderBody()"></label>
+    <label>${uiText("מצב קריאה")}<select onchange="filter=this.value;renderBody()"><option value="">${uiText("כל המצבים")}</option>${opts(options)}</select></label>
+    <label>${uiText("מיון")}<select onchange="sort=this.value;renderBody()"><option value="updated" ${sort !== 'title'?'selected':''}>${uiText("עדכון אחרון")}</option><option value="title" ${sort === 'title'?'selected':''}>${uiText("כותרת")}</option></select></label>
   </div>`;
 }
 
@@ -68,12 +73,12 @@ function auroraSourceLibrary() {
   const rows = sorted(S.sources);
   const current = rows.find(source => String(source.id) === selectedEvidenceId) || rows[0];
   return `<section class="evidence-library" aria-labelledby="evidence-library-title">
-    <div class="evidence-library-heading"><div><h2 id="evidence-library-title">ספריית המקורות</h2>
-    <span class="muted" role="status">${rows.length} מקורות</span></div>
-    <button type="button" class="primary" onclick="edit('sources')">＋ הוספת מקור</button></div>
-    ${current ? `<div class="evidence-columns"><div class="evidence-list" aria-label="רשימת המקורות">
+    <div class="evidence-library-heading"><div><h2 id="evidence-library-title">${uiText("ספריית המקורות")}</h2>
+    <span class="muted" role="status">${rows.length} ${uiText("מקורות")}</span></div>
+    <button type="button" class="primary" onclick="edit('sources')">${uiText("＋ הוספת מקור")}</button></div>
+    ${current ? `<div class="evidence-columns"><div class="evidence-list" aria-label="${uiText("רשימת המקורות")}">
       ${rows.map(source => sourcePick(source, source === current)).join('')}
-    </div><section class="evidence-preview" aria-label="פרטי המקור">${sourceDetail(current)}${sourceEditButton(current)}</section></div>` :
+    </div><section class="evidence-preview" aria-label="${uiText("פרטי המקור")}">${sourceDetail(current)}${sourceEditButton(current)}</section></div>` :
     empty(S.sources.length ? 'אין מקורות התואמים לחיפוש או לסינון.' : 'ספריית המקורות ריקה. אפשר להוסיף את המקור הראשון.')}
   </section>`;
 }
@@ -104,10 +109,10 @@ function openEvidenceSheet(opener, source) {
   const paper = chapter?.paperId || editor?.dataset.paperId || paperId;
   const evidence = showMaterials ? chapterEvidence(paper, chapter?.id) : [];
   const files = showMaterials ? S.files.filter(file => !file.sensitive && (chapter ? file.chapterId === chapter.id : paper && file.paperId === paper)) : [];
-  sheet.innerHTML = `<header class="evidence-sheet-head"><h2 id="evidence-sheet-title">${showMaterials ? 'חומרי המחקר' : 'פרטי המקור'}</h2>
-    <button type="button" class="evidence-close" aria-label="סגירה" autofocus>×</button></header><div class="evidence-sheet-body">
-    ${showMaterials ? `<div data-evidence-index><h3>מקורות</h3>${evidence.length ? evidence.map(item=>sourcePick(item)).join('') : '<p class="muted">טרם שויכו מקורות.</p>'}
-      <h3>קבצים מקושרים</h3>${workspaceFileList(files)}</div><div data-evidence-content hidden></div>` :
+  sheet.innerHTML = `<header class="evidence-sheet-head"><h2 id="evidence-sheet-title">${showMaterials ? uiText('חומרי המחקר') : uiText('פרטי המקור')}</h2>
+    <button type="button" class="evidence-close" aria-label="${uiText("סגירה")}" autofocus>×</button></header><div class="evidence-sheet-body">
+    ${showMaterials ? `<div data-evidence-index><h3>${uiText("מקורות")}</h3>${evidence.length ? evidence.map(item=>sourcePick(item)).join('') : ("<p class=\"muted\">" + uiText("טרם שויכו מקורות.") + "</p>")}
+      <h3>${uiText("קבצים מקושרים")}</h3>${workspaceFileList(files)}</div><div data-evidence-content hidden></div>` :
       sourceDetail(source) + (editor ? '' : sourceEditButton(source))}
     </div>`;
   sheet.onclick = event => {
@@ -128,7 +133,7 @@ function openEvidenceSheet(opener, source) {
     if (item) {
       const selected = evidence.find(ref => String(ref.id) === item.dataset.sourceId);
       if (!selected) return;
-      content.innerHTML = `<button type="button" data-evidence-back>חזרה למקורות</button>${sourceDetail(selected)}`;
+      content.innerHTML = `<button type="button" data-evidence-back>${uiText("חזרה למקורות")}</button>${sourceDetail(selected)}`;
       index.hidden = true;
       content.hidden = false;
       content.querySelector('button').focus();

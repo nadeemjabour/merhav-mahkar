@@ -15,7 +15,7 @@ function node(selector) {
   return nodes.get(selector);
 }
 const slots = new Set(['#nav','#title','#saved','#app','#body','#toolsbar','#modal','#editor','#upload','#restore','#workspace-project','#workspace-nav-toggle','#quickAdd']);
-const doc = {querySelector: s => slots.has(s) ? node(s) : null, querySelectorAll:()=>[],
+const doc = {documentElement:{lang:'he',dir:'rtl'}, querySelector: s => slots.has(s) ? node(s) : null, querySelectorAll:()=>[],
   createElement:element, addEventListener(){}, head:element(), body:element()};
 let source=require('./render-workspace.cjs')().split('<script>')[1].split('</script>')[0];source=source.slice(0,source.lastIndexOf('load().then('));
 const ctx=vm.createContext({console,crypto:require('node:crypto').webcrypto,document:doc,location:{hostname:'localhost',hash:''},history:{replaceState(){}},window:{},localStorage:{getItem:()=>null},setTimeout:()=>0,clearTimeout(){},setInterval:()=>0,clearInterval(){},Intl,Date,URL,FormData,fetch:()=>{throw Error('Unexpected network')}});vm.runInContext(source,ctx);
