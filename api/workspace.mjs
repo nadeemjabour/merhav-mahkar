@@ -4,7 +4,15 @@ import {authPage,escapeHtml} from '../server/auth-page.mjs';
 const json=(data,status=200)=>Response.json(data,{status});
 export function createHandler({env=process.env,fetcher=fetch,loadWorker=()=>import('../dist/server/workspace.mjs')}={}) {
  return async function handle(request) {
-  const url=new URL(request.url),path=url.pathname;
+  const url = new URL(request.url);
+  // A Vercel document rewrite can pass the function destination as the request URL.
+  // The workspace API uses POST for mutations. A browser document GET is the homepage.
+  if (url.pathname === '/api/workspace' && request.method === 'GET' &&
+      (request.headers.get('accept') || '').includes('text/html')) {
+    url.pathname = '/';
+    request = new Request(url, request);
+  }
+  const path = url.pathname;
   const cookies=new Map((request.headers.get('cookie')||'').split(';').map(s=>s.trim().split(/=(.*)/s)).filter(x=>x[0]).map(([k,v])=>[k,decodeURIComponent(v||'')]));
   const setCookies=[];
   const secure=url.protocol==='https:'?'; Secure':'';
