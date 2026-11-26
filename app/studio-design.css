@@ -471,3 +471,11 @@ html[data-theme="dark"] {
     background: #403528; color: #fbd89a;
   }
 }
+
+@media screen {
+  /* The analysis workbench hides the legacy header with an inline style. Keep
+     its global language and theme controls accessible on the statistics page. */
+  body > main:has(.statistics-workspace) > header:has(.studio-preferences) {
+    display: flex !important;
+  }
+}
