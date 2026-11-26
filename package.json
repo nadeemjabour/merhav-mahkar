@@ -1,0 +1,7 @@
+{
+  "name": "merhav-mahkar",
+  "private": true,
+  "version": "1.0.0",
+  "engines": { "node": ">=22" },
+  "scripts": { "build": "node build-vercel.cjs", "test:vercel": "node --test test-vercel.mjs" }
+}

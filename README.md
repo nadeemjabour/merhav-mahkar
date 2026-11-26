@@ -1,6 +1,6 @@
 # Merhav Mahkar — Research Workspace
 
-https://merhav-mahkar.vercel.app/
+https://merhav-mahkar-wine.vercel.app/
 
 A Hebrew-first research workspace for managing research projects, chapters, tasks, files, research instruments, and statistical analyses.
 
@@ -16,6 +16,7 @@ A Hebrew-first research workspace for managing research projects, chapters, task
 
 - [Architecture, APIs, and workflow](ARCHITECTURE.md)
 - [Research-task MCP integration](MCP_README.md)
+- [Vercel deployment and Supabase sign-in](VERCEL.md)
 
 ## Source layout
 

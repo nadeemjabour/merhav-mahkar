@@ -1,0 +1,16 @@
+export const escapeHtml=value=>String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+export function authPage({pending=false,email='',confirmed=false}={}) {
+ return `<!doctype html><html lang="he" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>כניסה למרחב המחקר</title>
+ <style>*{box-sizing:border-box}body{margin:0;font:16px system-ui,sans-serif;background:#f5f7f8;color:#20343a;min-height:100vh;display:grid;place-items:center;padding:24px}main{width:min(100%,440px);padding:36px;background:white;border:1px solid #dce5e7;border-radius:22px;box-shadow:0 16px 55px #20343a10}h1{font-size:28px;margin:0 0 12px}p{line-height:1.7;color:#53676d}label{display:block;margin-top:18px}input{width:100%;padding:13px;border:1px solid #bfcfd3;border-radius:10px;font:inherit;margin-top:7px;direction:ltr;text-align:left}button{padding:13px 20px;border:0;border-radius:10px;font:inherit;cursor:pointer;background:#245b65;color:white}button:disabled{opacity:.6;cursor:wait}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}.secondary{background:#eef3f4;color:#245b65}#message{min-height:24px;margin-top:18px;white-space:pre-line}a{color:#245b65}</style>
+ <main><h1>מרחב המחקר</h1>${pending?`<p>החשבון ${escapeHtml(email)} מחובר, אך אין לו עדיין הרשאה למרחב הזה.</p><p>הנתונים נשארים פרטיים. אפשר להתחבר עם החשבון שאושר.</p><button id="logout">יציאה מהחשבון</button>`:
+ `<p>התחברו כדי לפתוח את המחקרים, הקבצים והניתוחים השמורים.</p>${confirmed?'<p>לאחר אימות כתובת הדוא״ל אפשר להתחבר כאן.</p>':''}<form id="login"><label>כתובת דוא״ל<input name="email" type="email" required autocomplete="username" placeholder="name@example.com"></label><label>סיסמה<input name="password" type="password" required minlength="8" autocomplete="current-password"></label><div class="actions"><button type="submit">כניסה</button><button type="button" class="secondary" id="signup">יצירת חשבון</button></div></form><p>יצירת חשבון אינה מעניקה גישה למחקרים ללא הרשאה.</p>`}<p id="message" role="status" aria-live="polite"></p></main>
+ <script>
+ // Confirmation tokens are not retained in browser history or local storage.
+ if(location.hash)history.replaceState(null,'',location.pathname);
+ const message=document.querySelector('#message');
+ async function action(path,data){const buttons=[...document.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);message.textContent='רגע…';try{const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data||{})});const out=await r.json();if(!r.ok)throw Error(out.error||'הפעולה לא הושלמה');if(out.redirect){location.assign(out.redirect);return}message.textContent=out.message||'';}catch(e){message.textContent=e.message}finally{buttons.forEach(b=>b.disabled=false)}}
+ const form=document.querySelector('#login');
+ if(form){form.onsubmit=e=>{e.preventDefault();action('/auth/login',Object.fromEntries(new FormData(form)))};document.querySelector('#signup').onclick=()=>{if(form.reportValidity())action('/auth/signup',Object.fromEntries(new FormData(form)))}}
+ document.querySelector('#logout')?.addEventListener('click',()=>action('/auth/logout'));
+ </script></html>`;
+}

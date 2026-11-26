@@ -1,4 +1,6 @@
 dist/
+public/
+.vercel/
 node_modules/
 *.tar.gz
 .preview-data/

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "node build-vercel.cjs",
+  "outputDirectory": "public",
+  "functions": {
+    "api/workspace.mjs": { "maxDuration": 60, "includeFiles": "dist/server/**" }
+  },
+  "rewrites": [{ "source": "/:path*", "destination": "/api/workspace" }]
+}
