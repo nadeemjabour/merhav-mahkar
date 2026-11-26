@@ -69,7 +69,8 @@ export function createHandler({env=process.env,fetcher=fetch,loadWorker=()=>impo
    const worker=(await loadWorker()).default;
    let response=await worker.fetch(request,{BUCKET:bucket,OPENAI_API_KEY:env.OPENAI_API_KEY});
    if(path==='/'&&response.ok) {
-    const html=(await response.text()).replace(/<body\b[^>]*>/,match=>match+`<div style="padding:6px 16px;text-align:left;font:13px system-ui"><span>${escapeHtml(identity.data.email)}</span> · <button type="button" onclick="fetch('/auth/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(()=>location.assign('/'))">יציאה</button></div>`);
+    const account = `<details class="studio-account"><summary data-ui-aria="החשבון שלי" aria-label="החשבון שלי"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></summary><div><bdi>${escapeHtml(identity.data.email)}</bdi><button type="button" data-ui-text="יציאה" onclick="fetch('/auth/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(r=>{if(r.ok)location.assign('/')})">יציאה</button></div></details>`;
+    const html = (await response.text()).replace('<!-- signed-in-account -->', () => account);
     response=new Response(html,{headers:response.headers});
    }
    return finish(response);
