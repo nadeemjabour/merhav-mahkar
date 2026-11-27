@@ -3,7 +3,23 @@
   "buildCommand": "node build-vercel.cjs",
   "outputDirectory": "public",
   "functions": {
-    "api/workspace.mjs": { "maxDuration": 60, "includeFiles": "dist/server/**" }
+    "api/workspace.mjs": {
+      "maxDuration": 60,
+      "includeFiles": "dist/server/**"
+    }
   },
-  "rewrites": [{ "source": "/:path*", "destination": "/api/workspace" }]
+  "routes": [
+    {
+      "src": "/media/research-space-loop\\.mp4",
+      "dest": "/media/research-space-loop.mp4"
+    },
+    {
+      "src": "/media/research-space-poster\\.webp",
+      "dest": "/media/research-space-poster.webp"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/api/workspace"
+    }
+  ]
 }

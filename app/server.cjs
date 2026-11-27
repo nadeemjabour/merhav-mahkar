@@ -1,6 +1,9 @@
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const {DatabaseSync}=require('node:sqlite');
+if(fs.existsSync('.env.local'))process.loadEnvFile('.env.local');
 const renderWorkspace=require('./render-workspace.cjs');
+const authenticationConfigured=Boolean(process.env.SUPABASE_URL&&process.env.SUPABASE_PUBLISHABLE_KEY);
+const authHandler=import('../api/workspace.mjs').then(({createHandler})=>createHandler({authorizeOnly:true,discoverWorkspace:true}));
 const modules=process.env.CODEX_PACKAGES||'C:/Users/PSH-Nadeem/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules';
 const docx=require(require.resolve('docx',{paths:[modules]})),JSZip=require(require.resolve('jszip',{paths:[modules]}));
 const root=path.resolve(process.env.POSTDOC_DATA||path.join(__dirname,'data')),folder=path.join(root,'פוסט דוקטורט ומאמרים');fs.mkdirSync(folder,{recursive:true});
@@ -25,8 +28,51 @@ function json(res,code,data){res.writeHead(code,{'Content-Type':'application/jso
 async function rawBody(req){let chunks=[],size=0;for await(let c of req){size+=c.length;if(size>2*1024*1024*1024)throw Error('הגיבוי גדול מ־2GB');chunks.push(c)}return Buffer.concat(chunks)}
 async function body(req){let parts=[],size=0;for await(let c of req){size+=c.length;if(size>80*1024*1024)throw Error('הקובץ גדול מדי (עד 50MB)');parts.push(c)}return JSON.parse(Buffer.concat(parts).toString()||'{}')}
 const server=http.createServer(async(req,res)=>{try{const u=new URL(req.url,'http://localhost');if(!['localhost','127.0.0.1'].includes((req.headers.host||'').split(':')[0]))return json(res,403,{error:'גישה מקומית בלבד'});if(req.headers.origin&&!['http://localhost:'+port,'http://127.0.0.1:'+port].includes(req.headers.origin))return json(res,403,{error:'מקור לא מורשה'});
-if(u.pathname==='/'){let token=crypto.randomBytes(24).toString('hex');sessions.add(token);res.setHeader('Set-Cookie',`postdoc=${token}; HttpOnly; SameSite=Strict; Path=/`);res.setHeader('Content-Type','text/html; charset=utf-8');return res.end(renderWorkspace())}
-if(!sessions.has((req.headers.cookie||'').match(/postdoc=([a-f0-9]+)/)?.[1]))return json(res,403,{error:'פתחו את האפליקציה מחדש'});
+if(['/media/research-space-loop.mp4','/media/research-space-poster.webp'].includes(u.pathname) && ['GET','HEAD'].includes(req.method)){
+ const asset=path.join(__dirname,'media',path.basename(u.pathname)), size=fs.statSync(asset).size;
+ const range=req.headers.range;
+ const match=range && /^bytes=(\d*)-(\d*)$/.exec(range);
+ const suffix=match && !match[1] && match[2];
+ const start=suffix?Math.max(0,size-Number(suffix)):(match&&match[1]?Number(match[1]):0);
+ const end=match&&match[1]&&match[2]?Math.min(size-1,Number(match[2])):size-1;
+ if(range && (!match || (!match[1]&&!match[2]) || start>end || start>=size)){
+   res.writeHead(416,{'Content-Range':'bytes */'+size});return res.end();
+ }
+ const headers={'Content-Type':u.pathname.endsWith('.webp')?'image/webp':'video/mp4','Content-Length':end-start+1,'Accept-Ranges':'bytes','Cache-Control':'public, max-age=3600'};
+ if(range)headers['Content-Range']='bytes '+start+'-'+end+'/'+size;
+ res.writeHead(range?206:200,headers);
+ if(req.method==='HEAD')return res.end();
+ return fs.createReadStream(asset,{start,end}).on('error',()=>res.destroy()).pipe(res);
+}
+if(u.pathname==='/auth/logout' && req.method==='POST' && !authenticationConfigured){
+ const token=(req.headers.cookie||'').match(/postdoc=([a-f0-9]+)/)?.[1];
+ sessions.delete(token);
+ res.setHeader('Set-Cookie','postdoc=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');
+ return json(res,200,{redirect:'/auth/login'});
+}
+if(u.pathname.startsWith('/auth/')||authenticationConfigured){
+ const origin='http://'+req.headers.host;
+ const request=new Request(new URL(req.url,origin),{method:req.method,headers:req.headers,...(req.method==='POST'?{body:u.pathname.startsWith('/auth/')?req:'{}',duplex:'half'}:{})});
+ const response=await (await authHandler)(request);
+ const cookieHeaders=response.headers.getSetCookie();
+ for(const [name,value] of response.headers)if(!['set-cookie','content-type'].includes(name))res.setHeader(name,value);
+ if(cookieHeaders.length)res.setHeader('Set-Cookie',cookieHeaders);
+ if(u.pathname.startsWith('/auth/')||!response.ok||(response.headers.get('content-type')||'').includes('text/html')){
+  res.statusCode=response.status;
+  res.setHeader('Content-Type',response.headers.get('content-type')||'application/json; charset=utf-8');
+  return res.end(Buffer.from(await response.arrayBuffer()));
+ }
+}
+if(u.pathname==='/'){
+ if(!authenticationConfigured){
+  const token=crypto.randomBytes(24).toString('hex');sessions.add(token);
+  res.setHeader('Set-Cookie',`postdoc=${token}; HttpOnly; SameSite=Strict; Path=/`);
+ }
+ res.setHeader('Content-Type','text/html; charset=utf-8');
+ res.setHeader('Cache-Control','no-store');
+ return res.end(renderWorkspace());
+}
+if(!authenticationConfigured&&!sessions.has((req.headers.cookie||'').match(/postdoc=([a-f0-9]+)/)?.[1]))return json(res,403,{error:'פתחו את האפליקציה מחדש'});
 if(req.method==='GET'&&u.pathname.startsWith('/legacy/')){let name=u.pathname.slice('/legacy/'.length)||'index.html';if(!['index.html','style.css','app.js','seed.js'].includes(name))throw Error('לא נמצא');res.setHeader('Content-Type',name.endsWith('.css')?'text/css; charset=utf-8':name.endsWith('.js')?'text/javascript; charset=utf-8':'text/html; charset=utf-8');return res.end(fs.readFileSync(path.join(__dirname,'legacy',name)))}
 if(req.method==='POST'&&u.pathname==='/api/import-legacy'){let b=await body(req),s=read();let defaults=[];let source=path.join(__dirname,'legacy','app.js');if(fs.existsSync(source))defaults=JSON.parse(fs.readFileSync(source,'utf8').match(/const DEFAULT_RESEARCH_PLANS=(\[[^\n]+\]);/)[1]);require('./migrate-legacy.cjs')(s,b.backup,defaults);for(let p of s.papers)paperDir(p);return json(res,200,save(s,s.rev))}
 if(req.method==='POST'&&u.pathname==='/api/open-window'){const result=await require('./standalone-window.cjs')('http://127.0.0.1:'+port+'/');return json(res,200,result)}

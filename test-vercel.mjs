@@ -65,3 +65,82 @@ test('missing runtime state fails explicitly instead of inventing an empty works
  const h=createHandler({env,fetcher:async url=>url.includes('/auth/v1/user')?Response.json({id:'owner'}):url.includes('workspace_members')?Response.json([{role:'owner'}]):Response.json([])});
  assert.equal((await h(req('/api/state',{headers:{cookie:'rw-access=valid'}}))).status,503);
 });
+
+test('logout revokes the current session, clears both cookies and returns to the entrance', async () => {
+ const calls=[];
+ const handle=createHandler({env,fetcher:async(url,options)=>{
+  calls.push(url);
+  assert.equal(url,env.SUPABASE_URL+'/auth/v1/logout?scope=local');
+  assert.equal(options.method,'POST');
+  assert.equal(options.headers.Authorization,'Bearer access-test');
+  return new Response(null,{status:204});
+ }});
+ const response=await handle(req('/auth/logout',{method:'POST',headers:{Origin:'https://workspace.example',cookie:'rw-access=access-test; rw-refresh=refresh-test'},body:'{}'}));
+ assert.equal(response.status,200);
+ assert.deepEqual(await response.json(),{redirect:'/auth/login'});
+ const cookies=response.headers.getSetCookie();
+ assert.equal(cookies.length,2);
+ for(const cookie of cookies) {
+  assert.match(cookie,/^(?:rw-access|rw-refresh)=;/);
+  assert.match(cookie,/Max-Age=0/);
+  assert.match(cookie,/HttpOnly; SameSite=Lax; Secure/);
+ }
+ assert.equal((await handle(req('/api/state'))).status,401);
+ assert.match(await (await handle(req('/'))).text(),/id="entrance"/);
+ const again=await handle(req('/auth/logout',{method:'POST',headers:{Origin:'https://workspace.example'},body:'{}'}));
+ assert.equal(again.status,200);
+ assert.equal(calls.length,1);
+});
+
+test('the direct login route displays the form without replaying the entrance', async () => {
+ const handle=createHandler({env,fetcher:()=>{throw Error('unexpected request');}});
+ const response=await handle(req('/auth/login'));
+ const html=await response.text();
+ assert.equal(response.status,200);
+ assert.match(html,/<form id="login"/);
+ assert.match(html,/type="email"/);
+ assert.match(html,/type="password"/);
+ assert.doesNotMatch(html,/id="entrance"|local-open|localSignedOut/);
+});
+test('local authorization reuses membership checks without loading hosted data', async () => {
+ const handle=createHandler({env,authorizeOnly:true,fetcher:async url=>{
+  if(url.includes('/auth/v1/user'))return Response.json({id:'owner',email:'owner@example.com'});
+  if(url.includes('/rest/v1/workspace_members'))return Response.json([{role:'owner'}]);
+  throw Error('Unexpected storage request');
+ },loadWorker:()=>{throw Error('Hosted worker must not load');}});
+ const response=await handle(req('/',{headers:{cookie:'rw-access=valid'}}));
+ assert.equal(response.status,200);
+ assert.deepEqual(await response.json(),{ok:true,storage:'Supabase',private:true});
+});
+test('a local connection resolves the single workspace belonging to the verified user', async () => {
+ let discovery=false;
+ const handle=createHandler({env:{...env,RESEARCH_WORKSPACE_ID:undefined},authorizeOnly:true,discoverWorkspace:true,fetcher:async url=>{
+  if(url.includes('/auth/v1/user'))return Response.json({id:'owner',email:'owner@example.com'});
+  const params=new URL(url).searchParams;
+  assert.equal(params.get('user_id'),'eq.owner');
+  if(params.get('select')==='workspace_id'){
+   discovery=true;assert.equal(params.get('limit'),'2');
+   return Response.json([{workspace_id:'resolved-workspace'}]);
+  }
+  assert.equal(params.get('workspace_id'),'eq.resolved-workspace');
+  return Response.json([{role:'owner'}]);
+ }});
+ assert.equal((await handle(req('/',{headers:{cookie:'rw-access=valid'}}))).status,200);
+ assert.equal(discovery,true);
+});
+test('a local connection requires a selection when multiple workspaces are available', async () => {
+ const handle=createHandler({env:{...env,RESEARCH_WORKSPACE_ID:undefined},authorizeOnly:true,discoverWorkspace:true,fetcher:async url=>
+  url.includes('/auth/v1/user')?Response.json({id:'owner'}):Response.json([{workspace_id:'one'},{workspace_id:'two'}])
+ });
+ assert.equal((await handle(req('/',{headers:{cookie:'rw-access=valid'}}))).status,503);
+});
+test('an unapproved account cannot access the local data', async () => {
+ const handle=createHandler({env:{...env,RESEARCH_WORKSPACE_ID:undefined},authorizeOnly:true,discoverWorkspace:true,fetcher:async url=>{
+  if(url.includes('/auth/v1/user'))return Response.json({id:'pending',email:'pending@example.com'});
+  if(url.includes('/rpc/'))return new Response(null,{status:204});
+  return Response.json([]);
+ }});
+ assert.equal((await handle(req('/api/state',{headers:{cookie:'rw-access=valid'}}))).status,403);
+ const root=await handle(req('/',{headers:{cookie:'rw-access=valid'}}));
+ assert.match(await root.text(),/pending@example.com/);
+});

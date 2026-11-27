@@ -1,6 +1,13 @@
 // Interface copy for the source library, task controls and statistical workbench.
 // Keys follow the original Hebrew interface; translations are [English, Arabic].
 Object.assign(window.MerhavMessages ||= {}, {
+  "שלבי הניתוח": ["Analysis stages", "مراحل التحليل"],
+  "ספר הקידוד": ["Codebook", "دليل الترميز"],
+  "מקור הנתונים": ["Data source", "مصدر البيانات"],
+  "מדדים מורכבים": ["Composite measures", "المقاييس المركّبة"],
+  "תוצאות הניתוח": ["Analysis results", "نتائج التحليل"],
+  "פתיחת ספר הקידוד": ["Open codebook", "فتح دليل الترميز"],
+  "לא נמצאו משתנים מתאימים": ["No matching variables", "لم يُعثر على متغيّرات مطابقة"],
   "מקור ללא כותרת": ["Untitled source", "مصدر بلا عنوان"],
   "פרטים ביבליוגרפיים": ["Bibliographic details", "البيانات الببليوغرافية"],
   "מטרות המקור": ["Source objectives", "أهداف المصدر"],
@@ -917,4 +924,180 @@ Object.assign(window.MerhavMessages ||= {}, {
   "שאלון וקישורים": ["Questionnaire and links", "الاستبيان والروابط"],
   "מקור ואימות": ["Source and verification", "المصدر والتحقق"],
   "פעולות": ["Actions", "الإجراءات"]
+});
+
+Object.assign(window.MerhavMessages, {
+  "קרוסלה": [
+    "Carousel",
+    "عرض دوّار"
+  ],
+  "תצוגת מחקרים": [
+    "Research view",
+    "طريقة عرض الأبحاث"
+  ],
+  "קרוסלת מחקרים": [
+    "Research carousel",
+    "عرض الأبحاث الدوّار"
+  ],
+  "המחקר הקודם": [
+    "Previous study",
+    "البحث السابق"
+  ],
+  "המחקר הבא": [
+    "Next study",
+    "البحث التالي"
+  ],
+  "מחקר נבחר": [
+    "Selected study",
+    "البحث المحدد"
+  ],
+  "מעבר למחקר": [
+    "Jump to study",
+    "انتقل إلى بحث"
+  ],
+  "לא נמצאו מחקרים התואמים לסינון": [
+    "No studies match these filters.",
+    "لا توجد أبحاث تطابق عوامل التصفية."
+  ]
+});
+
+Object.assign(window.MerhavMessages, {
+  "סביבת המחקר": [
+    "Research workspace",
+    "مساحة البحث"
+  ],
+  "הפניות לתשובה": [
+    "Answer references",
+    "مراجع الإجابة"
+  ],
+  "הרשומה אינה זמינה": [
+    "Record unavailable",
+    "السجل غير متاح"
+  ],
+  "ההפניות יופיעו כאן אחרי תשובה שמקשרת לרשומות.": [
+    "References appear here when an answer links to a record.",
+    "تظهر المراجع هنا عندما تتضمن الإجابة رابطًا إلى سجل."
+  ],
+  "לתשובה זו אין הפניות שמורות.": [
+    "This answer has no saved references.",
+    "لا تحتوي هذه الإجابة على مراجع محفوظة."
+  ],
+  "פתיחת הרשומה": [
+    "Open record",
+    "فتح السجل"
+  ],
+  "מקורות והפניות": [
+    "Sources and references",
+    "المصادر والمراجع"
+  ],
+  "אילו מקורות יש?": [
+    "Which sources are available?",
+    "ما المراجع المتاحة؟"
+  ],
+  "אפשרויות קול": [
+    "Voice options",
+    "خيارات الصوت"
+  ],
+  "טעינת השיחה…": [
+    "Loading conversation…",
+    "جارٍ تحميل المحادثة…"
+  ],
+  "טעינה מחדש": [
+    "Reload",
+    "إعادة التحميل"
+  ],
+  "השאלה שלך": [
+    "Your question",
+    "سؤالك"
+  ]
+});
+
+Object.assign(window.MerhavMessages, {
+  "השהיית תנועה": [
+    "Pause motion",
+    "إيقاف الحركة مؤقتًا"
+  ],
+  "הפעלת תנועה": [
+    "Enable motion",
+    "تشغيل الحركة"
+  ],
+  "תנועה מופחתת לפי הגדרות המכשיר": [
+    "Reduced motion on this device",
+    "حركة مخفّضة بحسب إعدادات الجهاز"
+  ],
+  "גודל טקסט": [
+    "Text size",
+    "حجم النص"
+  ],
+  "הגדלת טקסט": [
+    "Increase text size",
+    "تكبير النص"
+  ],
+  "הקטנת טקסט": [
+    "Decrease text size",
+    "تصغير النص"
+  ],
+  "שינוי סדר המחקרים": [
+    "Reorder studies",
+    "ترتيب الأبحاث"
+  ],
+  "הקדמה בסדר": [
+    "Move earlier",
+    "تقديم في الترتيب"
+  ],
+  "דחייה בסדר": [
+    "Move later",
+    "تأخير في الترتيب"
+  ]
+});
+
+Object.assign(window.MerhavMessages, {
+  "הוסיפו את הקובץ הראשון": [
+    "Add your first file",
+    "أضف ملفك الأول"
+  ],
+  "גררו לכאן קובץ, או בחרו תיקייה שלמה. בזמן ההעלאה אפשר לשייך את החומר למחקר ולפרק.": [
+    "Drop a file here or choose a folder. During upload, you can link your material to a study and chapter.",
+    "اسحب ملفًا إلى هنا أو اختر مجلدًا كاملًا. يمكنك ربط المواد ببحث وفصل أثناء الرفع."
+  ],
+  "גררו קובץ אחד או בחרו העלאת תיקייה.": [
+    "Drop one file or choose Upload folder.",
+    "اسحب ملفًا واحدًا أو اختر رفع مجلد."
+  ],
+  "הקבצים שלי": [
+    "My files",
+    "ملفاتي"
+  ],
+  "פרטי הקובץ": [
+    "File details",
+    "تفاصيل الملف"
+  ],
+  "היסטוריית גרסאות": [
+    "Version history",
+    "سجل الإصدارات"
+  ],
+  "כל הגרסאות": [
+    "All versions",
+    "كل الإصدارات"
+  ],
+  "לא נמצאו קבצים מתאימים": [
+    "No files match your search",
+    "لا توجد ملفات تطابق بحثك"
+  ],
+  "ניקוי סינון": [
+    "Clear filters",
+    "مسح عوامل التصفية"
+  ],
+  "נפח": [
+    "Size",
+    "الحجم"
+  ],
+  "תיקייה": [
+    "Folder",
+    "مجلد"
+  ],
+  "עד 50MB לקובץ": [
+    "Up to 50 MB per file",
+    "حتى 50 ميغابايت لكل ملف"
+  ]
 });

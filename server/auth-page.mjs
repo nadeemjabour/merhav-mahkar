@@ -1,3 +1,4 @@
+import { entranceMarkup, startEntrance } from './research-entrance.mjs';
 import { fieldDiagram } from './auth-art.mjs';
 import { authStyle } from './auth-style.mjs';
 
@@ -7,6 +8,7 @@ export const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => 
 
 const copy = {
   he: {
+    skipFilm:'דילוג לכניסה', playFilm:'ניגון עם צליל', resumeFilm:'המשך ניגון', pauseFilm:'השהיה', muteFilm:'השתקה', unmuteFilm:'הפעלת צליל',
     title: 'כניסה למרחב המחקר', brand: 'מרחב המחקר', signIn: 'כניסה', signUp: 'יצירת חשבון',
     heading: 'כניסה למרחב', intro: 'התחברו עם כתובת הדוא״ל שאושרה למרחב המחקר שלכם.',
     email: 'כתובת דוא״ל', password: 'סיסמה', access: 'הגישה למחקרים זמינה לחשבונות שאושרו.',
@@ -22,9 +24,11 @@ const copy = {
     rate: 'בוצעו ניסיונות רבים. נסו שוב בעוד מספר דקות.',
     service: 'חיבור המרחב עדיין לא הוגדר.', origin: 'מקור הבקשה לא מורשה.', tooLarge: 'הבקשה גדולה מדי.',
     invalidEmail: 'הזינו כתובת דוא״ל תקינה.', invalidPassword: 'הזינו סיסמה באורך 8 תווים לפחות.',
+    workspace: 'נמצאו כמה מרחבי מחקר. יש לבחור מרחב בהגדרות החיבור.',
     retry: 'הפעולה לא הושלמה. נסו שוב.'
   },
   en: {
+    skipFilm:'Skip to sign in', playFilm:'Play with sound', resumeFilm:'Resume film', pauseFilm:'Pause', muteFilm:'Mute', unmuteFilm:'Turn sound on',
     title: 'Sign in to Research Workspace', brand: 'Research Workspace', signIn: 'Sign in', signUp: 'Create account',
     heading: 'Sign in', intro: 'Use the email address approved for your research workspace.',
     email: 'Email address', password: 'Password', access: 'Research is available to approved accounts.',
@@ -40,9 +44,11 @@ const copy = {
     rate: 'Too many attempts. Please try again in a few minutes.',
     service: 'The workspace connection has not been configured yet.', origin: 'This request came from an unauthorized origin.', tooLarge: 'The request is too large.',
     invalidEmail: 'Enter a valid email address.', invalidPassword: 'Enter a password of at least 8 characters.',
+    workspace: 'Several research workspaces are available. Select a workspace in the connection settings.',
     retry: 'The request could not be completed. Please try again.'
   },
   ar: {
+    skipFilm:'تخطَّ إلى تسجيل الدخول', playFilm:'تشغيل مع الصوت', resumeFilm:'متابعة التشغيل', pauseFilm:'إيقاف مؤقت', muteFilm:'كتم الصوت', unmuteFilm:'تشغيل الصوت',
     title: 'تسجيل الدخول إلى مساحة البحث', brand: 'مساحة البحث', signIn: 'دخول', signUp: 'إنشاء حساب',
     heading: 'تسجيل الدخول', intro: 'سجّل الدخول باستخدام عنوان البريد الإلكتروني المعتمد لمساحة البحث.',
     email: 'البريد الإلكتروني', password: 'كلمة المرور', access: 'الأبحاث متاحة للحسابات المعتمدة.',
@@ -58,6 +64,7 @@ const copy = {
     rate: 'تجاوزت عدد المحاولات المسموح به. حاول مجددًا بعد بضع دقائق.',
     service: 'لم يُضبط اتصال مساحة البحث بعد.', origin: 'مصدر هذا الطلب غير مصرّح به.', tooLarge: 'حجم الطلب كبير جدًا.',
     invalidEmail: 'أدخل عنوان بريد إلكتروني صالحًا.', invalidPassword: 'أدخل كلمة مرور تتألف من 8 أحرف على الأقل.',
+    workspace: 'توجد عدة مساحات بحث. اختر مساحة في إعدادات الاتصال.',
     retry: 'تعذّر إكمال الطلب. حاول مجددًا.'
   }
 };
@@ -69,11 +76,12 @@ const apiMessages = {
   'לא ניתן ליצור חשבון כרגע. בדקו את הכתובת והסיסמה.': 'wrongSignup',
   'הכניסה לא הצליחה. בדקו את הפרטים ואמתו את כתובת הדוא״ל.': 'wrongLogin',
   'חיבור המרחב עדיין לא הוגדר': 'service',
+  'יש לבחור מרחב מחקר בהגדרות החיבור המקומי': 'workspace',
   'מקור בקשה לא מורשה': 'origin',
   'הבקשה גדולה מדי': 'tooLarge'
 };
 
-const mark = '<svg viewBox="0 0 40 40" aria-hidden="true" focusable="false"><rect width="40" height="40" rx="11" fill="#194e4c"/><g fill="none" stroke="#eadbbb" stroke-width="1.6" stroke-linejoin="round"><path d="m7 22 13-7 13 7-13 7-13-7Zm0-5 13-7 13 7-13 7-13-7Z"/></g><circle cx="30" cy="10" r="3" fill="#f0b76e"/></svg>';
+const mark = "<svg viewBox=\"0 0 40 40\" aria-hidden=\"true\" focusable=\"false\"><rect width=\"40\" height=\"40\" rx=\"13\" fill=\"#374963\"/><g transform=\"rotate(-28 20 20)\"><ellipse cx=\"20\" cy=\"20\" rx=\"16\" ry=\"8\" fill=\"none\" stroke=\"#aabfda\" stroke-width=\"1.4\"/><circle cx=\"20\" cy=\"20\" r=\"6.4\" fill=\"#f6b1ce\"/><path d=\"M4 20a16 8 0 0 0 32 0\" fill=\"none\" stroke=\"#e395af\" stroke-width=\"1.7\"/><circle cx=\"32.6\" cy=\"15.2\" r=\"2.1\" fill=\"#f5eff8\"/></g></svg>";
 const globe = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg>';
 const themes = '<svg class="moon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M20.5 14.6a8.8 8.8 0 0 1-11-11 9 9 0 1 0 11 11Z"/></svg><svg class="sun" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M19 5l-1.5 1.5m-11 11L5 19"/></svg>';
 
@@ -97,7 +105,8 @@ function localized(key) {
   return '<span data-copy="' + key + '">' + escapeHtml(copy.he[key]) + '</span>';
 }
 
-export function authPage({pending = false, email = '', confirmed = false} = {}) {
+export function authPage({pending = false, email = '', confirmed = false, entrance = true} = {}) {
+  const showEntrance = entrance && !pending && !confirmed;
   const content = pending
     ? `<h1>${localized('pending')}</h1><p class="lead">${localized('signedIn')} <bdi class="account">${escapeHtml(email)}</bdi></p><p class="notice">${localized('pendingInfo')}</p><button class="action" id="logout" type="button">${localized('logout')}</button>`
     : `<h1>${localized('heading')}</h1><p class="lead">${localized('intro')}</p>
@@ -110,8 +119,9 @@ export function authPage({pending = false, email = '', confirmed = false} = {}) 
 
   return `<!doctype html>
 <html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${copy.he.title}</title>
-<script>${initialize}</script><style>${authStyle}</style></head>
-<body><div class="shell">
+<script>${initialize}
+${showEntrance ? "document.documentElement.dataset.entrance='ready';" : ''}</script><style>${authStyle}</style></head>
+<body>${showEntrance ? entranceMarkup(mark, localized) : ''}<div class="shell">
 <header><div class="brand">${mark}${localized('brand')}</div><div class="preferences">
 <label class="control">${globe}<select id="language" aria-label="${copy.he.language}"><option value="he" lang="he">עברית</option><option value="ar" lang="ar">العربية</option><option value="en" lang="en">English</option></select></label>
 <button id="theme" class="control theme" type="button" aria-label="${copy.he.dark}" title="${copy.he.dark}">${themes}</button></div></header>
@@ -135,6 +145,7 @@ export function authPage({pending = false, email = '', confirmed = false} = {}) 
     document.title = translate('title');
     languageSelect.value = root.lang;
     languageSelect.setAttribute('aria-label', translate('language'));
+    languageSelect.title = translate('language')+' · '+languageSelect.selectedOptions[0].text;
     const themeLabel = translate(root.dataset.theme === 'dark' ? 'light' : 'dark');
     themeControl.setAttribute('aria-label', themeLabel);
     themeControl.title = themeLabel;
@@ -198,6 +209,7 @@ export function authPage({pending = false, email = '', confirmed = false} = {}) 
   }
   document.querySelector('#logout')?.addEventListener('click', () => action('/auth/logout'));
   refreshLabels();
+  ${showEntrance ? `(${startEntrance.toString()})();` : ''}
 })();
 </script></body></html>`;
 }
