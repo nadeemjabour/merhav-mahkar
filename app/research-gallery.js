@@ -18,8 +18,14 @@ function changeGalleryMode(mode) {
   document.querySelector('[data-gallery-mode][aria-pressed="true"]')?.focus({preventScroll:true});
 }
 
+function galleryPapers() {
+  return view === 'dashboard' && !paperId && window.deskFilteredPapers
+    ? window.deskFilteredPapers()
+    : sorted(S.papers);
+}
+
 function researchLibrary() {
-  const papers = sorted(S.papers);
+  const papers = galleryPapers();
   const mode = galleryMode();
   const toggles = galleryLayouts.map(([key,label]) =>
     `<button type="button" data-gallery-mode="${key}" aria-pressed="${key === mode}"
@@ -89,10 +95,11 @@ function researchCarousel(papers) {
 function selectGalleryPaper(id, focusTarget) {
   const gallery = document.querySelector('.research-gallery');
   if (!gallery || !id || galleryPaperId === id) return;
-  const papers = sorted(S.papers);
+  const papers = galleryPapers();
   const to = papers.findIndex(p => p.id === id);
   if (to < 0) return;
   galleryPaperId = id;
+  if (view === 'dashboard' && !paperId) window.syncDeskStudy?.(id);
   const template = document.createElement('template');
   template.innerHTML = researchCarousel(papers);
   const updated = template.content.firstElementChild;
@@ -111,7 +118,7 @@ function selectGalleryPaper(id, focusTarget) {
 }
 
 function stepGallery(by, focusTarget) {
-  const papers = sorted(S.papers);
+  const papers = galleryPapers();
   const index = papers.findIndex(p => p.id === galleryPaperId);
   const target = papers.length > 2 ? (index + by + papers.length) % papers.length : index + by;
   selectGalleryPaper(papers[target]?.id, focusTarget);
@@ -132,7 +139,7 @@ function galleryKey(event) {
   if (!['ArrowRight','ArrowLeft','Home','End'].includes(event.key)) return;
   event.preventDefault();
   if (event.key === 'Home' || event.key === 'End') {
-    const papers = sorted(S.papers);
+    const papers = galleryPapers();
     return selectGalleryPaper(papers.at(event.key === 'Home' ? 0 : -1)?.id, 'stage');
   }
   stepGallery((event.key === 'ArrowRight' ? 1 : -1) * (rtl ? -1 : 1), 'stage');

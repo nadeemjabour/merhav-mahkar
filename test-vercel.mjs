@@ -1,3 +1,4 @@
+import {createRequire} from 'node:module';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -304,4 +305,21 @@ test('Google-only mode replaces the password form and refuses password endpoints
  const html=await (await fallback(req('/auth/login'))).text();
  assert.match(html,/<form id="login"/);
  assert.match(html,/id="password-toggle"/);
+});
+
+test('signed-in account remains inside the collapsible sidebar with the workspace controls',async()=>{
+ const renderWorkspace=createRequire(import.meta.url)('./app/render-workspace.cjs');
+ const fetcher=async url=>url.includes('/auth/v1/user')
+  ? Response.json({id:'owner',email:'owner@example.com'})
+  : url.includes('workspace_members')?Response.json([{role:'owner'}]):Response.json([{data:{rev:1},version:'etag'}]);
+ const handle=createHandler({env,fetcher,loadWorker:async()=>({default:{fetch:async()=>new Response(renderWorkspace(),{headers:{'Content-Type':'text/html; charset=utf-8'}})}})});
+ const response=await handle(req('/',{headers:{cookie:'rw-access=valid'}}));
+ assert.equal(response.status,200);
+ const html=await response.text();
+ const aside=html.match(/<aside>([\s\S]*?)<\/aside><main>/)?.[1]||'';
+ assert.match(aside,/class="workspace-sidebar-tools"/);
+ assert.match(aside,/class="studio-account"/);
+ assert.match(aside,/owner@example.com/);
+ assert.match(aside,/id="quickAdd"/);
+ assert.match(aside,/id="workspace-logout"/);
 });

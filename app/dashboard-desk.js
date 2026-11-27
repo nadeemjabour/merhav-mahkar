@@ -13,7 +13,12 @@ function syncDeskMotion() {
   const button = deck.querySelector('[data-motion-toggle]');
   button.disabled = deskReduced.matches;
   button.textContent = uiText(deskReduced.matches ? 'תנועה מופחתת לפי הגדרות המכשיר' : deskStill ? 'הפעלת תנועה' : 'השהיית תנועה');
-  if (!deskMotionEnabled()) deck.getAnimations({subtree:true}).filter(a=>!a.animationName).forEach(a=>a.cancel());
+  if (!deskMotionEnabled()) {
+    deck.getAnimations({subtree:true}).filter(a=>!a.animationName).forEach(a=>a.cancel());
+    const stage=deck.querySelector('.desk-depth');
+    stage?.style.removeProperty('--desk-tilt-x');
+    stage?.style.removeProperty('--desk-tilt-y');
+  }
 }
 deskReduced.addEventListener('change',syncDeskMotion);
 function toggleDeskMotion() {
@@ -40,10 +45,12 @@ function deskStudyContents(paper) {
       <button type="button" onclick="edit('tasks',null,{paperId:deskFocusId})">${uiText('＋ משימה')}</button>
       <button type="button" onclick="edit('papers',deskFocusId)">${uiText('✎ עריכת מחקר')}</button></div>
     </div><div class="desk-instrument">
-      <div class="desk-dial" style="--sweep:${completed.pct*3.6}deg">
-        <div class="desk-orbit" aria-hidden="true"></div>
-        <div class="desk-dial-reading"><b dir="ltr">${new Intl.NumberFormat(uiLocale(),{style:'percent'}).format(completed.pct/100)}</b>
-          <span>${uiText('התקדמות')}</span></div></div>
+      <div class="desk-depth">
+        <div class="desk-orbit desk-orbit-one" aria-hidden="true"></div><div class="desk-orbit desk-orbit-two" aria-hidden="true"></div><div class="desk-orbit desk-orbit-three" aria-hidden="true"></div><div class="desk-orbit desk-orbit-four" aria-hidden="true"></div>
+        <div class="desk-dial" role="progressbar" aria-label="${esc(uiText('התקדמות'))}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${completed.pct}" style="--sweep:${completed.pct*3.6}deg">
+          <div class="desk-planet" aria-hidden="true"><div class="desk-liquid" data-empty="${completed.pct===0}" style="--fill:${completed.pct}%"></div></div>
+          <div class="desk-dial-reading" aria-hidden="true"><b dir="ltr">${new Intl.NumberFormat(uiLocale(),{style:'percent'}).format(completed.pct/100)}</b>
+          <span>${uiText('התקדמות')}</span></div></div></div>
       <div class="desk-breakdown">${breakdown('משימות',tasks)}${breakdown('פרקים',chapters)}</div>
     </div>`;
 }
@@ -85,7 +92,9 @@ function chooseDeskStudy(id, direction) {
   if (!deck || index===-1) return;
   direction ??= Math.sign(index-papers.findIndex(p=>p.id===deskFocusId));
   const leaf=deck.querySelector('.desk-leaf');
-  const previousSweep=getComputedStyle(leaf.querySelector('.desk-dial')).getPropertyValue('--sweep').trim();
+  const previousDial=leaf.querySelector('.desk-dial');
+  const previousSweep=getComputedStyle(previousDial).getPropertyValue('--sweep').trim();
+  const previousPercent=Number(previousDial.getAttribute('aria-valuenow')) || 0;
   deskFocusId=id;
   leaf.innerHTML=deskStudyContents(papers[index]);
   const tabs=Array.from(deck.querySelectorAll('[data-study]'));
@@ -98,7 +107,22 @@ function chooseDeskStudy(id, direction) {
   counter.querySelector('.gallery-sr').textContent=' · '+papers[index].title;
   if (!deskMotionEnabled()) return;
   const dial=leaf.querySelector('.desk-dial');
-  dial.animate([{'--sweep':previousSweep},{'--sweep':dial.style.getPropertyValue('--sweep')}],{duration:660,easing:'cubic-bezier(.25,.8,.25,1)'});
+  const targetPercent=Number(dial.getAttribute('aria-valuenow')) || 0;
+  const duration=850, easing='cubic-bezier(.25,.8,.25,1)';
+  dial.animate([{'--sweep':previousSweep},{'--sweep':dial.style.getPropertyValue('--sweep')}],{duration,easing});
+  dial.querySelector('.desk-liquid').animate([{height:previousPercent+'%'},{height:targetPercent+'%'}],{duration,easing});
+  const reading=dial.querySelector('.desk-dial-reading b');
+  const formatter=new Intl.NumberFormat(uiLocale(),{style:'percent'});
+  const started=performance.now();
+  function animateReading(now) {
+    if (!reading.isConnected) return;
+    const elapsed=Math.min(1,(now-started)/duration);
+    const eased=1-Math.pow(1-elapsed,3);
+    const value=deskMotionEnabled()?Math.round(previousPercent+(targetPercent-previousPercent)*eased):targetPercent;
+    reading.textContent=formatter.format(value/100);
+    if (elapsed<1 && deskMotionEnabled()) requestAnimationFrame(animateReading);
+  }
+  requestAnimationFrame(animateReading);
   const shift=(document.documentElement.dir==='rtl'?-1:1)*direction;
   leaf.querySelector('.desk-manuscript').animate([{opacity:.2,transform:'translateX('+shift*42+'px)'},{opacity:1,transform:'translateX(0)'}],{duration:440,easing:'cubic-bezier(.16,.84,.3,1)'});
   leaf.querySelector('.desk-dial-reading').animate([{transform:'scale(.82)',opacity:.3},{transform:'scale(1)',opacity:1}],{duration:460,easing:'ease-out'});

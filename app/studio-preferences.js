@@ -39,10 +39,21 @@
     'שמירה מקומית': ['Local save', 'حفظ محلي'],
     'עוד': ['More', 'المزيد'],
     '＋ הוספה מהירה': ['＋ Quick add', '＋ إضافة سريعة'],
-    'המחקר הפעיל': ['Active project', 'البحث النشط']
+    'המחקר הפעיל': ['Active project', 'البحث النشط'],
+    'מחקר פעיל': ['Active research', 'البحث النشط'],
+    'שולחן המחקר': ['Research desk', 'مكتب البحث'],
+    'מחקרים': ['Research', 'الأبحاث'],
+    'כל המחקרים': ['All research', 'جميع الأبحاث'],
+    'חזרה למחקר הפעיל': ['Back to active research', 'العودة إلى البحث النشط'],
+    'חיפוש במחקרים': ['Search research', 'البحث في الأبحاث'],
+    'כתיבה': ['Writing', 'الكتابة'],
+    'משימות וקבצים': ['Tasks and files', 'المهام والملفات'],
+    'אזורי שולחן המחקר': ['Research desk sections', 'أقسام مكتب البحث'],
+    'המחקר הראשון מתחיל כאן': ['Your first research project starts here', 'يبدأ بحثك الأول هنا'],
+    'הוסיפו מחקר כדי להתחיל לעקוב אחר ההתקדמות והמשימות.': ['Add a research project to start tracking progress and tasks.', 'أضف بحثًا لبدء متابعة التقدم والمهام.']
   };
   const sectionNames = {
-    dashboard: 'לוח בקרה', papers: 'המחקרים שלי', tasks: 'משימות', gantt: 'גאנט מחקרים',
+    dashboard: 'שולחן המחקר', papers: 'המחקרים שלי', tasks: 'משימות', gantt: 'גאנט מחקרים',
     sources: 'מקורות וקריאה', files: 'קבצים וגרסאות', analyses: 'תכנון ניתוחים',
     statistics: 'סטטיסטיקה ונתונים', tools: 'מאגר כלי מחקר', opportunities: 'הזדמנויות לפרסום',
     activity: 'יומן פעילות', chat: 'שיחה על המחקרים', settings: 'שמירה וגיבוי'
@@ -151,7 +162,7 @@
   const icon = name => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + symbols[name] + '</svg>';
   let controls;
   const typeKey = 'merhav-reading-size';
-  const typeSteps = [100,115,130,150,175,200];
+  const typeSteps = [80,90,100,115,130,150,175,200];
   function applyType(size, persist = false) {
     const level = typeSteps.includes(Number(size)) ? Number(size) : 100;
     page.style.fontSize = level + '%';
