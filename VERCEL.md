@@ -49,6 +49,14 @@ app reports that setup is pending while the provider is disabled.
 4. A Google account must use an email preapproved for the workspace. Google
    sign-in does not bypass the existing membership checks.
 
+After a real, approved account has successfully signed in with Google, set
+`GOOGLE_SIGN_IN_ONLY=true` in the local or Vercel environment and redeploy or
+restart the application. The sign-in screen then offers Google only and the
+app's password login and signup endpoints reject requests. Keep the setting
+unset until the Google flow has been verified to avoid locking users out.
+Supabase's email provider is a separate project setting; disabling it affects
+other email-based authentication flows, so assess those before changing it.
+
 The server uses PKCE with a separate, short-lived HttpOnly verifier cookie for
 each sign-in attempt. It exchanges the code at `/auth/callback`, then sets the
 same private session cookies used by password sign-in. Cancelled, expired or

@@ -184,4 +184,7 @@ html[data-entrance="leaving"] #entrance { position:fixed; inset:0; z-index:30; o
 .action.google-action { width:100%; background:var(--surface); color:var(--ink); border-color:var(--edge); box-shadow:none; }
 .action.google-action:hover { background:var(--notice); filter:none; }
 .google-action svg { width:21px; height:21px; flex:none; }
+.social-login.google-only { margin-top:1.75rem; }
+.social-login.google-only .google-action { min-height:54px; background:var(--primary); border-color:var(--primary); color:var(--on-primary); box-shadow:0 8px 22px -12px #9d5068; }
+.social-login.google-only .google-action:hover { filter:brightness(.95); }
 `;

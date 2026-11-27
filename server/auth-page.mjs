@@ -9,7 +9,7 @@ export const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => 
 
 const copy = {
   he: {
-    google:'כניסה עם Google', or:'או', showPassword:'הצגת הסיסמה', hidePassword:'הסתרת הסיסמה',
+    googleIntro:'המשיכו עם חשבון Google שאושר לגישה למרחב המחקר שלכם.', google:'כניסה עם Google', or:'או', showPassword:'הצגת הסיסמה', hidePassword:'הסתרת הסיסמה',
     googleUnavailable:'החיבור ל־Google ממתין להפעלה בידי בעל המרחב.',
     googleFailed:'הכניסה עם Google לא הושלמה. נסו שוב.',
     googleCancelled:'הכניסה עם Google בוטלה. אפשר לנסות שוב.',
@@ -33,7 +33,7 @@ const copy = {
     retry: 'הפעולה לא הושלמה. נסו שוב.'
   },
   en: {
-    google:'Continue with Google', or:'or', showPassword:'Show password', hidePassword:'Hide password',
+    googleIntro:'Continue with the Google account approved for your research workspace.', google:'Continue with Google', or:'or', showPassword:'Show password', hidePassword:'Hide password',
     googleUnavailable:'Google sign-in is waiting for the workspace owner to enable it.',
     googleFailed:'Google sign-in could not be completed. Please try again.',
     googleCancelled:'Google sign-in was cancelled. You can try again.',
@@ -57,7 +57,7 @@ const copy = {
     retry: 'The request could not be completed. Please try again.'
   },
   ar: {
-    google:'المتابعة باستخدام Google', or:'أو', showPassword:'إظهار كلمة المرور', hidePassword:'إخفاء كلمة المرور',
+    googleIntro:'تابع باستخدام حساب Google المعتمد للوصول إلى مساحة البحث.', google:'المتابعة باستخدام Google', or:'أو', showPassword:'إظهار كلمة المرور', hidePassword:'إخفاء كلمة المرور',
     googleUnavailable:'تسجيل الدخول باستخدام Google بانتظار التفعيل من مالك المساحة.',
     googleFailed:'تعذّر إكمال تسجيل الدخول باستخدام Google. حاول مجددًا.',
     googleCancelled:'تم إلغاء تسجيل الدخول باستخدام Google. يمكنك المحاولة مجددًا.',
@@ -121,17 +121,18 @@ function localized(key) {
   return '<span data-copy="' + key + '">' + escapeHtml(copy.he[key]) + '</span>';
 }
 
-export function authPage({pending = false, email = '', confirmed = false, entrance = true, notice = ''} = {}) {
+export function authPage({pending = false, email = '', confirmed = false, entrance = true, notice = '', googleOnly = false} = {}) {
   const showEntrance = entrance && !pending && !confirmed;
   const content = pending
     ? `<h1>${localized('pending')}</h1><p class="lead">${localized('signedIn')} <bdi class="account">${escapeHtml(email)}</bdi></p><p class="notice">${localized('pendingInfo')}</p><button class="action" id="logout" type="button">${localized('logout')}</button>`
-    : `<h1>${localized('heading')}</h1><p class="lead">${localized('intro')}</p>
+    : `<h1>${localized('heading')}</h1><p class="lead">${localized(googleOnly ? 'googleIntro' : 'intro')}</p>
        ${confirmed ? '<p class="notice">' + localized('confirmed') + '</p>' : ''}
-       <form id="login" method="post" action="/auth/login">
+       ${googleOnly ? '' : `<form id="login" method="post" action="/auth/login">
          <div class="fields"><label>${localized('email')}<input name="email" type="email" required autocomplete="username" placeholder="name@example.com"></label>
          <div class="password-field"><label for="login-password">${localized('password')}</label><span class="password-input"><input id="login-password" name="password" dir="ltr" type="password" required minlength="8" autocomplete="current-password"><button id="password-toggle" type="button" aria-controls="login-password" aria-pressed="false" aria-label="${copy.he.showPassword}" title="${copy.he.showPassword}">${eye}</button></span></div></div>
          <div class="actions"><button type="submit" class="action">${localized('signIn')}</button><button type="button" class="action secondary" id="signup">${localized('signUp')}</button></div>
-       </form><div class="social-login"><div class="login-separator">${localized('or')}</div><button type="button" class="action google-action" id="google-signin">${googleMark}${localized('google')}</button></div><p class="note">${localized('access')}</p>`;
+       </form>`}
+       <div class="social-login${googleOnly ? ' google-only' : ''}">${googleOnly ? '' : '<div class="login-separator">' + localized('or') + '</div>'}<button type="button" class="action google-action" id="google-signin">${googleMark}${localized('google')}</button></div><p class="note">${localized('access')}</p>`;
 
   return `<!doctype html>
 <html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${copy.he.title}</title>

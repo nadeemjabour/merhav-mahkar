@@ -267,7 +267,7 @@ test('Google cancellation and failed code exchange return to a localized, retrya
 
 test('a Google-authenticated account still needs workspace membership before any research is loaded',async()=>{
  let workerCalled=false;
- const handle=createHandler({env,fetcher:async url=>{
+ const handle=createHandler({env:{...env,GOOGLE_SIGN_IN_ONLY:'true'},fetcher:async url=>{
   if(url.endsWith('/settings'))return Response.json({external:{google:true}});
   if(url.includes('grant_type=pkce'))return Response.json({access_token:'unapproved-google',refresh_token:'fixture-refresh'});
   if(url.endsWith('/user'))return Response.json({id:'google-user',email:'pending@example.com',app_metadata:{provider:'google'}});
@@ -282,4 +282,26 @@ test('a Google-authenticated account still needs workspace membership before any
  assert.equal(workerCalled,false);
  const home=await handle(req('/',{headers:{cookie:session}}));
  assert.match(await home.text(),/pending@example.com/);
+});
+
+test('Google-only mode replaces the password form and refuses password endpoints without contacting Supabase',async()=>{
+ const handle=createHandler({env:{...env,GOOGLE_SIGN_IN_ONLY:'true'},fetcher:()=>{throw Error('Password endpoints must not contact Supabase');}});
+ for(const url of ['/','/auth/login','/auth/signup']){
+  const response=await handle(req(url));assert.equal(response.status,200);
+  const html=await response.text();
+  assert.match(html,/id="google-signin"/);
+  assert.match(html,/class="social-login google-only"/);
+  assert.doesNotMatch(html,/<form id="login"/);
+  assert.doesNotMatch(html,/<input[^>]+name="password"/);
+  if(url==='/')assert.match(html,/id="entrance"/);
+ }
+ for(const path of ['/auth/login','/auth/signup']){
+  const response=await handle(req(path,{method:'POST',headers:{Origin:'https://workspace.example'},body:JSON.stringify({email:'fixture@example.com',password:'unused-password'})}));
+  assert.equal(response.status,403);
+  assert.deepEqual(response.headers.getSetCookie(),[]);
+ }
+ const fallback=createHandler({env,fetcher:()=>{throw Error('unexpected request');}});
+ const html=await (await fallback(req('/auth/login'))).text();
+ assert.match(html,/<form id="login"/);
+ assert.match(html,/id="password-toggle"/);
 });

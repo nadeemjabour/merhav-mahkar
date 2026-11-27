@@ -25,7 +25,8 @@ export function createHandler({env=process.env,fetcher=fetch,loadWorker=()=>impo
    setCookies.push('rw-oauth-'+flow+'='+verifier+'; Path=/auth/callback; HttpOnly; SameSite=Lax'+secure+'; Max-Age='+(verifier?600:0));
   };
   const finish=r=>{const headers=new Headers(r.headers);headers.set('Cache-Control','private, no-store');headers.set('X-Content-Type-Options','nosniff');headers.set('Referrer-Policy','same-origin');headers.set('X-Frame-Options','DENY');for(const cookie of setCookies)headers.append('Set-Cookie',cookie);return new Response(r.body,{status:r.status,headers});};
-  const page=options=>new Response(authPage(options),{headers:{'Content-Type':'text/html; charset=utf-8'}});
+  const googleOnly=env.GOOGLE_SIGN_IN_ONLY==='true';
+  const page=options=>new Response(authPage({...options,googleOnly}),{headers:{'Content-Type':'text/html; charset=utf-8'}});
   try {
    if(!['GET','HEAD','POST'].includes(request.method))return finish(json({error:'Method not allowed'},405));
    if(request.method==='POST'&&request.headers.get('origin')!==url.origin)return finish(json({error:'מקור בקשה לא מורשה'},403));
@@ -76,6 +77,7 @@ export function createHandler({env=process.env,fetcher=fetch,loadWorker=()=>impo
     return finish(new Response(null,{status:303,headers:{Location:'/'}}));
    }
    if(path==='/auth/login'||path==='/auth/signup') {
+    if(googleOnly)return finish(json({error:'הכניסה למרחב זמינה באמצעות Google בלבד.'},403));
     const text=await request.text();if(text.length>10000)return finish(json({error:'הבקשה גדולה מדי'},413));
     const b=JSON.parse(text),email=String(b.email||'').trim().toLowerCase(),password=String(b.password||'');
     if(!email.includes('@')||password.length<8)return finish(json({error:'יש להזין דוא״ל וסיסמה באורך 8 תווים לפחות'},400));
