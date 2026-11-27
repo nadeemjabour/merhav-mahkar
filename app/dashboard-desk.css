@@ -1,60 +1,90 @@
-@property --sweep { syntax:"<angle>"; inherits:false; initial-value:0deg; }
-/* A reading desk with an instrument panel for the selected manuscript. */
-body.dashboard-view .workspace-top { position:static; }
-html body.dashboard-view .workspace-top .desk-intro {
-  display:flex; justify-content:space-between; align-items:center; gap:1.25rem; flex-wrap:wrap;
-  position:relative; overflow:visible; min-height:0; padding:.85rem 0 1.1rem; margin:0;
-  border:0; border-radius:0; box-shadow:none; background:transparent; color:var(--workspace-ink);
+@property --fill { syntax:"<percentage>"; inherits:true; initial-value:0%; }
+
+/* The glass sphere and its outer arc use the same animated completion value. */
+.desk-instrument {
+  display:grid; place-items:center; padding:clamp(.85rem,1.5cqw,1.65rem);
 }
-.desk-intro::before,.desk-intro::after { display:none; }
-html body.dashboard-view .desk-intro h2 { font:700 clamp(1.8rem,calc(2.6vw * var(--reading-ratio,1) + .5rem),3.5rem)/1.15 var(--workspace-serif); margin:.4rem 0; color:var(--workspace-ink); }
-html body.dashboard-view .desk-intro :is(p,time) { color:var(--workspace-muted); margin:0; font-size:1rem; }
-.desk-intro time { display:inline-flex; align-items:center; gap:.4rem; }
-.desk-intro-tools,.desk-controls,.desk-study-actions { display:flex; align-items:center; gap:.65rem; flex-wrap:wrap; }
-.desk-intro-tools .desk-actions { position:relative; z-index:4; }
-.desk-intro-tools summary { color:var(--workspace-ink); cursor:pointer; padding:.6rem; }
-.desk-deck { --folio:#fcfdff; --ink:#28354b; --faint:#4e607a; --chart:#354968; --signal:var(--brand-blush); color:var(--ink); background:var(--folio); border:1px solid var(--brand-powder); border-radius:18px; overflow:hidden; margin-block:.35rem 1rem; }
-html[data-theme="dark"] .desk-deck { --folio:#243248; --ink:#f5f7fc; --faint:#c8d6e8; --chart:#2d3f5b; border-color:#556983; }
-.desk-deck-bar { display:flex; justify-content:space-between; align-items:center; gap:.8rem; padding:.75rem clamp(1rem,2.3vw,2.25rem); flex-wrap:wrap; border-block-end:1px solid color-mix(in srgb,var(--ink) 22%,transparent); }
-html body.dashboard-view .desk-deck-bar h3 { color:var(--ink); font-size:1.15rem; margin:0; }
-html body .desk-deck .desk-controls button, html body .desk-deck .desk-priority button,html body .desk-deck .desk-study-actions button { background:transparent; color:var(--ink); border:1px solid color-mix(in srgb,var(--ink) 36%,transparent); box-shadow:none; border-radius:8px; min-height:44px; padding:.45rem .8rem; font-size:.95rem; }
-html body .desk-deck .desk-controls .desk-arrow { border-radius:50%; width:44px; padding:0; font-size:1.6rem; line-height:1; }
-.desk-arrow span { display:inline-block; unicode-bidi:isolate; }
-.desk-deck:dir(rtl) .desk-arrow span { transform:scaleX(-1); }
-.desk-counter { font:600 .95rem/1.2 system-ui,sans-serif; font-variant-numeric:tabular-nums; }
-.desk-leaf { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); }
-.desk-manuscript { padding:clamp(1.25rem,3.3vw,3rem); min-width:0; align-self:center; }
-.desk-folio-meta,.desk-target { display:flex; align-items:center; flex-wrap:wrap; gap:.7rem; color:var(--faint); font-size:1rem; }
-.desk-folio-meta b { border-inline-end:1px solid currentColor; padding-inline-end:.7rem; }
-html body.dashboard-view .desk-manuscript h2 { color:var(--ink); font:700 clamp(2.1rem,calc(2.5vw * var(--reading-ratio,1) + 1rem),4.1rem)/1.12 var(--workspace-serif); margin:1rem 0; overflow-wrap:anywhere; text-align:match-parent; }
-.desk-next-action { display:grid; gap:.2rem; border-inline-start:3px solid var(--brand-berry); padding-inline-start:.8rem; margin-block:1.4rem; }
-.desk-next-action span { font-size:.95rem; color:var(--faint); }
-.desk-next-action strong { font-size:1.13rem; line-height:1.45; overflow-wrap:anywhere; text-align:match-parent; }
-html body .desk-deck .desk-study-actions .desk-open { background:var(--brand-berry); color:#ffffff; border-color:var(--brand-berry); font-weight:700; }
-.desk-instrument { position:relative; isolation:isolate; overflow:hidden; display:grid; justify-items:center; align-content:center; gap:1rem; padding:1.5rem; color:#f7f9fc; background-color:var(--chart); background-image:radial-gradient(ellipse at 25% 95%,#52688c 0,transparent 66%),linear-gradient(#aabfda17 1px,transparent 1px),linear-gradient(90deg,#aabfda17 1px,transparent 1px); background-size:auto,24px 24px,24px 24px; }
-.desk-dial { width:clamp(8rem,12vw,12.5rem); aspect-ratio:1; border-radius:50%; position:relative; display:grid; place-items:center; background:conic-gradient(from -90deg,var(--signal) var(--sweep),#657a9d 0); box-shadow:0 0 0 5px var(--chart),0 0 0 6px #aabfda80; }
-.desk-dial::before { content:""; position:absolute; inset:6px; border-radius:inherit; background:var(--chart); }
-.desk-dial-reading { position:relative; display:grid; text-align:center; gap:.15rem; }
-.desk-dial-reading b { font:650 clamp(1.7rem,calc(3vw * var(--reading-ratio,1) + .2rem),3.3rem)/1.1 system-ui,sans-serif; font-variant-numeric:tabular-nums; }
-.desk-dial-reading span { font-size:.95rem; color:#dde7f5; }
-.desk-orbit { position:absolute; inset:-.87rem; border-radius:50%; border:1px dashed #aabfda60; }
-.desk-orbit::before { content:""; position:absolute; top:50%; left:-4px; width:8px; height:8px; border-radius:50%; background:var(--signal); box-shadow:0 0 9px var(--brand-blush); }
-.desk-breakdown { display:flex; flex-wrap:wrap; gap:1.5rem; justify-content:center; margin-top:.5rem; }
-.desk-breakdown div { display:grid; gap:.15rem; text-align:center; }
-.desk-breakdown span { font-size:.92rem; color:#dde7f5; }
-.desk-breakdown b { font-variant-numeric:tabular-nums; font-size:1.05rem; }
-.desk-catalog { display:flex; gap:.65rem; padding:.9rem 1rem; overflow-x:auto; overscroll-behavior-inline:contain; scroll-snap-type:x proximity; border-block-start:1px solid color-mix(in srgb,var(--ink) 20%,transparent); }
-html body .desk-deck .desk-catalog button { display:grid; align-content:start; gap:.3rem; flex:1 0 11rem; max-width:23rem; min-width:0; min-height:4.5rem; text-align:start; padding:.7rem .85rem; border:1px solid color-mix(in srgb,var(--ink) 20%,transparent); border-radius:8px; color:var(--ink); background:transparent; box-shadow:none; scroll-snap-align:start; }
-html body .desk-deck .desk-catalog button[aria-pressed="true"] { color:#ffffff; background:#465a7a; border-color:var(--brand-slate); box-shadow:inset 0 -3px 0 var(--signal); }
-.desk-catalog span { font-size:.9rem; opacity:.85; }
-.desk-catalog strong { overflow-wrap:anywhere; font-size:1.02rem; line-height:1.28; text-align:match-parent; }
-.desk-priority { padding:0 1rem .35rem; color:var(--faint); }
+.desk-depth {
+  position:relative; width:100%; aspect-ratio:1; display:grid; place-items:center; perspective:800px;
+  transform:rotateX(var(--desk-tilt-x,0deg)) rotateY(var(--desk-tilt-y,0deg)); transition:transform .5s ease-out;
+}
+.desk-dial {
+  width:100%; aspect-ratio:1; position:relative; z-index:1; display:grid; place-items:center; border-radius:50%;
+  background:conic-gradient(from -90deg,var(--brand-blush) var(--fill),#657a9d 0);
+  box-shadow:0 20px 35px -18px #0d192e,0 0 0 5px #385071,0 0 0 6px #b7c9e180;
+}
+.desk-dial::before {
+  content:""; position:absolute; inset:6px; border-radius:inherit; background:#354968;
+}
+.desk-dial-reading { position:relative; z-index:3; display:grid; gap:.15rem; text-align:center; }
+.desk-dial-reading b { font:650 clamp(1.55rem,3.1cqw,3rem)/1.1 system-ui,sans-serif; font-variant-numeric:tabular-nums; }
+.desk-dial-reading span { font-size:.85rem; }
+
+.desk-orbit { position:absolute; z-index:0; inset:-15%; border:1px solid #d4e4fa78; border-radius:50%; transform-style:flat; pointer-events:none; }
+.desk-orbit::before { width:12px; height:12px; left:calc(50% - 6px); top:-6px; background:radial-gradient(circle at 28% 23%,#fff7fc,#f6b1ce 45%,#9d5068); box-shadow:0 0 14px #f6b1ce88,0 4px 9px #192a49a0; }
+.desk-orbit-one { transform:rotateX(66deg) rotateZ(20deg); }
+.desk-orbit-two { inset:-25%; border-color:#f6b1ce76; transform:rotateY(66deg) rotateZ(55deg); }
+.desk-orbit-two::before { width:9px; height:9px; top:-5px; background:radial-gradient(circle at 28% 23%,#fff,#aabfda 48%,#7185a8); }
+.desk-orbit-three { inset:-33%; border-style:dashed; border-color:#d5e4f748; transform:rotateX(72deg) rotateZ(-45deg); }
+.desk-orbit-three::before { width:7px; height:7px; top:-4px; background:#f6b1ce; }
+.desk-orbit::before { content:""; position:absolute; border-radius:50%; }
+/* A visible satellite completes a full orbit without crossing the percentage. */
+.desk-orbit-four { inset:-12%; border-style:dotted; border-color:#e0ecfa66; }
+.desk-orbit-four::before { width:11px; height:11px; top:-5px; background:radial-gradient(circle at 25% 20%,#fff,#f6b1ce 42%,#9d5068); }
+@media (prefers-reduced-motion:no-preference) {
+  .desk-library[data-motion="on"] .desk-orbit-four { animation:desk-ring-four 11s linear infinite; }
+}
+@keyframes desk-ring-four { to { transform:rotate(360deg); } }
+
+@media (prefers-reduced-motion:no-preference) {
+  .desk-library[data-motion="on"] .desk-orbit-one { animation:desk-ring-one 12s linear infinite; }
+  .desk-library[data-motion="on"] .desk-orbit-two { animation:desk-ring-two 17s linear infinite; }
+  .desk-library[data-motion="on"] .desk-orbit-three { animation:desk-ring-three 24s linear infinite; }
+}
+@keyframes desk-ring-one { from {transform:rotateX(66deg) rotateZ(0deg)} to {transform:rotateX(66deg) rotateZ(360deg)} }
+@keyframes desk-ring-two { from {transform:rotateY(66deg) rotateZ(360deg)} to {transform:rotateY(66deg) rotateZ(0deg)} }
+@keyframes desk-ring-three { from {transform:rotateX(72deg) rotateZ(0deg)} to {transform:rotateX(72deg) rotateZ(360deg)} }
+@media (prefers-reduced-motion:reduce) { .desk-depth { transition:none; transform:none; } }
+
+/* A shaded glass planet holds the actual completed proportion as a liquid fill. */
+.desk-dial { overflow:visible; }
+.desk-planet {
+  position:absolute; z-index:1; inset:8px; border-radius:50%; overflow:hidden;
+  background:radial-gradient(circle at 30% 21%,#aabfda 0,#7185a8 24%,#425a7d 56%,#263953 87%);
+  box-shadow:inset 5px 7px 14px #e9f2ff35,inset -15px -22px 26px #152441bd,0 5px 15px #10223a70;
+}
+.desk-liquid {
+  position:absolute; inset-inline:0; bottom:0; height:var(--fill); overflow:hidden;
+  background:linear-gradient(105deg,#9d5068 0%,#e395af 28%,#f6b1ce 55%,#a35a78 100%);
+  box-shadow:inset -14px -13px 24px #563a6090,inset 10px 0 20px #fff4;
+}
+.desk-liquid::before {
+  content:""; position:absolute; inset-inline:-4%; top:-.25rem; height:.6rem; border-radius:50%;
+  background:linear-gradient(90deg,#e395af,#ffe2ef 42%,#f6b1ce 78%,#9d5068);
+  box-shadow:0 2px 7px #f9c8dcaa;
+}
+.desk-planet::after {
+  content:""; position:absolute; inset:0; border-radius:50%; pointer-events:none;
+  background:radial-gradient(ellipse at 28% 17%,#ffffffa8 0%,#ffffff45 7%,transparent 25%),
+    radial-gradient(ellipse at 50% 45%,transparent 44%,#24355077 83%,#17243cc7 100%),
+    linear-gradient(125deg,#ffffff24 4%,transparent 35%,#25395622 74%);
+  box-shadow:inset -9px -16px 20px #25365299,inset 2px 3px 8px #ffffff66;
+}
+.desk-dial-reading { color:#fff; text-shadow:0 2px 5px #182944,0 1px 15px #1b2948; }
+.desk-dial-reading span { color:#fff; font-weight:650; }
+@media (prefers-reduced-motion:no-preference) {
+  .desk-library[data-motion="on"] .desk-liquid::before { animation:desk-surface 4.8s ease-in-out infinite alternate; }
+}
+@keyframes desk-surface { from { transform:translateY(0) scaleX(1); } to { transform:translateY(2px) scaleX(1.06); } }
+
+.desk-priority { padding:0 1rem .35rem; color:var(--workspace-muted); }
 .desk-priority summary { cursor:pointer; width:fit-content; padding:.5rem 0; font-size:.93rem; }
 .desk-priority ol { padding:0; list-style:none; }
 .desk-priority li { display:flex; align-items:center; gap:.6rem; padding:.4rem 0; }
 .desk-priority b { flex:1; overflow-wrap:anywhere; }
 .desk-priority .drag-over { outline:2px solid var(--faint); }
-.desk-deck :is(summary,button):focus-visible { outline:3px solid var(--brand-rose); outline-offset:2px; }
+.desk-priority :is(summary,button):focus-visible { outline:3px solid var(--brand-rose); outline-offset:2px; }
+
 html body.dashboard-view .metric-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr)); gap:.65rem; }
 html body.dashboard-view .metric-strip .metric-tile { min-width:0; height:auto; padding:.85rem 1rem; }
 html body.dashboard-view .metric-strip small { font-size:.98rem; line-height:1.35; }
@@ -65,23 +95,5 @@ html body .studio-type button { padding:.3rem .5rem; min-height:40px; min-width:
 .studio-type button:disabled { opacity:.4; }
 html body>main>header { flex-wrap:wrap; }
 html body>main>header .workspace-header-actions { min-width:0; max-width:100%; flex-wrap:wrap; }
-@media (prefers-reduced-motion:no-preference) {
-  .desk-deck[data-motion="on"] .desk-orbit { animation:desk-orbit-spin 10s linear infinite; }
-  .desk-deck[data-motion="on"] .desk-dial { animation:desk-dial-in .6s cubic-bezier(.16,.84,.3,1) both; }
-  .desk-deck[data-motion="on"] .desk-catalog button { transition:background-color .25s,transform .25s; }
-  .desk-deck[data-motion="on"] .desk-catalog button:hover { transform:translateY(-2px); }
-}
-@keyframes desk-orbit-spin { to {transform:rotate(360deg);} }
-@keyframes desk-dial-in { from {opacity:.3; transform:scale(.86);} to {opacity:1; transform:scale(1);} }
-@media (max-width:760px) {
-  .desk-leaf { grid-template-columns:minmax(0,1fr); }
-  .desk-instrument { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:2rem; padding:1.6rem 1rem; }
-  .desk-dial { width:6rem; }
-  .desk-dial-reading b { font-size:1.65rem; }
-  .desk-dial-reading span { font-size:.8rem; }
-  .desk-controls { gap:.4rem; }
-}
-@media (min-width:761px) {
-  html[data-large-type] .desk-leaf { grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr)); }
-}
-@media print { .studio-type,.desk-controls,.desk-priority,.desk-catalog { display:none; } .desk-orbit { animation:none; } }
+
+@media print { .studio-type,.desk-priority,[data-motion-toggle] { display:none; } .desk-orbit { animation:none !important; } }

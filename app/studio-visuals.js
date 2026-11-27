@@ -136,7 +136,7 @@ function mountEdgeRail(rail) {
     if (!desktop.matches || !navigation) return;
     setOpen(false);
     if (event.detail === 0) {
-      const target = document.querySelector('.desk-research-focus:not([hidden]) .desk-deck h3, .desk-library:not([hidden]) h2, .desk-empty h2') || document.querySelector('#title');
+      const target = document.querySelector('#desk-library-title') || document.querySelector('#title');
       if (target) {
         if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex','-1');
         target.focus({preventScroll:true});

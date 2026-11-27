@@ -138,14 +138,13 @@ assert.equal(run('q'),'unrelated-task-filter');
 assert.equal(run('filter'),'other-status');
 assert.equal(run('sort'),'due');
 assert.equal(run("progress(S.papers[0]).pct"),50);
-assert.match(run("deskStudyContents(S.papers[0])"),/50%/);
 assert.match(run('researchLibrary()'),/50%/);
 console.log('PASS: unified research desk keeps library filters isolated and progress consistent.');
 
 /* The globe represents the same completed tasks and chapters as the library. */
 for (const [completed,total,expected] of [[0,4,0],[2,4,50],[4,4,100]]) {
   run(`S.tasks=Array.from({length:${total}},(_,i)=>({id:'orb-'+i,paperId:'p1',status:i<${completed}?'הושלם':'לביצוע'}));S.chapters=[];`);
-  const html=run('deskStudyContents(S.papers[0])');
+  const html=run('renderDeskLibrary()');
   assert.match(html,new RegExp('role="progressbar"[^>]*aria-valuenow="'+expected+'"'));
   assert.match(html,new RegExp('--fill:'+expected+'%'));
 }

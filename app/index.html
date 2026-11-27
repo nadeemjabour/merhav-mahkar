@@ -180,7 +180,7 @@ let mutationQueue=Promise.resolve();function queuedMutation(url,data){let job=mu
 function toast(s,error=false){let t=document.createElement('div');t.className='toast'+(error?' error':'');t.textContent=s;document.body.append(t);setTimeout(()=>t.remove(),error?12000:4500)}
 async function load(){try{let r=await api('/api/state');storage=r.storage;delete r.storage;S=r;render()}catch(e){toast(e.message,true)}}
 let saving=false;async function persist(){if(saving)throw Error('שמירה קודמת עדיין מתבצעת');saving=true;try{S=await api('/api/state',{state:S,rev:S.rev});$('#saved').textContent='נשמר במחשב · '+new Date().toLocaleTimeString(uiLocale());return true}catch(e){toast(e.message+' התוכן נשאר בחלון זה. ניתן לנסות שוב.',true);throw e}finally{saving=false}}
-function go(v){if(v==='papers'){window.openDeskLibrary();v='dashboard'}if(v==='chat'){openResearchChat();return}view=v;paperId='';q='';filter='';render()}function openPaper(id){deskFocusId=id;galleryPaperId=id;paperId=id;view='papers';tab='overview';q='';filter='';render()}
+function go(v){if(v==='papers')v='dashboard';if(v==='chat'){openResearchChat();return}view=v;paperId='';q='';filter='';render()}function openPaper(id){galleryPaperId=id;paperId=id;view='papers';tab='overview';q='';filter='';render()}
 function displayChoice(value, choices, fallback = 'לא הוזן') {
   return value ? (choices.includes(value) ? uiText(value) : value) : uiText(fallback);
 }
@@ -372,8 +372,6 @@ function dashboard() {
   const near = open.filter(t=>t.due && t.due>=today() && t.due<=endOfWeek).sort((a,b)=>a.due.localeCompare(b.due));
   const stale = S.papers.filter(p=>Date.now()-new Date(p.updated)>30*864e5);
   const recentFiles = S.files.filter(f=>!f.sensitive).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,5);
-  const config = S.dashboard || {};
-  const dateLabel = new Intl.DateTimeFormat(uiLocale(),{timeZone:'Asia/Jerusalem',weekday:'long',day:'numeric',month:'long'}).format(new Date());
   const metrics = [
     ['מחקרים פעילים',S.papers.filter(p=>p.status!=='פורסם').length,'papers',''],
     ['משימות לשבוע הקרוב',near.length,'tasks','teal'],
@@ -381,14 +379,7 @@ function dashboard() {
     ['ללא עדכון 30 יום',stale.length,'activity','purple'],
     ['סיכום שבועי','פתיחה','gantt','weekly']
   ];
-  return `<section class="dashboard-hero desk-intro"><div class="desk-intro-copy">
-    <time datetime="${today()}">${workspaceIcon('clock')} ${esc(dateLabel)}</time>
-    <h2>${esc(config.title || uiText(dashboardTitle))}</h2><p>${esc(config.subtitle || uiText(dashboardSubtitle))}</p></div>
-    <div class="desk-intro-tools">${action(uiText('＋ מחקר חדש'),"edit('papers')",'primary')}
-      <details class="desk-actions"><summary>${uiText('אפשרויות תצוגה')}</summary><div>
-      ${action(uiText('עריכת לוח הבקרה'),'editDashboard()')}${action(uiText('ריענון האפליקציה'),'location.reload()')}
-      ${action(uiText('פתיחה בחלון נפרד'),'openAppWindow()')}</div></details></div></section>
-  ${deskStudyDeck()}
+  return `${renderDeskLibrary()}
   ${dashboardWritingWorkbench() || `<section class="writing-workbench desk-start" aria-labelledby="desk-start-title">
     <div class="desk-start-body">
       <span class="desk-start-icon">${workspaceIcon('writing')}</span>
@@ -660,7 +651,7 @@ const novemberGo=go;go=function(v){stopVoice();stopSpeech();captureVoiceDraft();
 const novemberOpenPaper=openPaper;openPaper=function(id){stopVoice();stopSpeech();return novemberOpenPaper(id)};
 async function restoreDeletedFile(id){try{await workspaceMutation({action:'restore-file',fileId:id});renderBody();toast(uiText('הקובץ שוחזר'))}catch(e){toast(e.message,true)}}
 function unifiedHeading(title,description,controls=''){title=uiText(title);description=uiText(description);return ("<section class=\"dashboard-hero\"><div><span class=\"hero-date\">" + uiText("סביבת המחקר שלך") + "</span><h2>")+title+'</h2><p>'+description+'</p></div><div class="hero-controls">'+controls+action(uiText('↻ ריענון'),'load()')+action(uiText('↗ חלון נפרד'),'openAppWindow()')+'</div></section>'}
-const novemberRenderBody=renderBody;renderBody=function(){novemberRenderBody();const mainView=!paperId,sticky=mainView&&['dashboard','tasks','gantt'].includes(view);document.body.classList.toggle('workspace-sticky',sticky);if(view==='files'&&mainView)$('#toolsbar').innerHTML='';const body=$('#body');if(sticky){const top=document.createElement('div');top.className='workspace-top';if(view==='dashboard'){const hero=body.querySelector('.dashboard-hero'),workbench=body.querySelector('.writing-workbench'),metrics=body.querySelector('.metric-strip');if(hero)top.append(hero);const deck=body.querySelector('.desk-deck');if(deck)top.append(deck);if(workbench)top.append(workbench);if(metrics)top.append(metrics)}else{top.innerHTML=unifiedHeading(view==='tasks'?'משימות':view==='gantt'?'גאנט מחקרים':'קבצים וגרסאות',view==='tasks'?'תכנון, עדיפויות ומעקב אחר הצעד הבא.':view==='gantt'?'לוח זמנים לפי מאמר ומצב העבודה.':'חיפוש ושיוך מסמכי המחקר לפרקים.');if(view==='tasks'){const toolbar=body.querySelector('.task-unified-toolbar');if(toolbar)top.append(toolbar);top.querySelectorAll('.task-reset').forEach(x=>x.remove());const sortSelect=top.querySelector('select[data-task-sort]');sortSelect?.remove();if(!top.querySelector('[data-all-tasks]')){const button=document.createElement('button');button.textContent=uiText('הכול');button.dataset.allTasks='true';button.onclick=()=>{window.taskCategory='';window.taskrange='הכול';filter='';q='';renderBody()};top.querySelector('.task-control-row')?.append(button)}}if(view==='gantt'){const picker=body.querySelector('.article-picker'),head=body.querySelector('.sectionhead');if(picker)top.append(picker);if(head)top.append(head)}}body.prepend(top)}
+const novemberRenderBody=renderBody;renderBody=function(){novemberRenderBody();const mainView=!paperId,sticky=mainView&&['dashboard','tasks','gantt'].includes(view);document.body.classList.toggle('workspace-sticky',sticky);if(view==='files'&&mainView)$('#toolsbar').innerHTML='';const body=$('#body');if(sticky){const top=document.createElement('div');top.className='workspace-top';if(view==='dashboard'){const library=body.querySelector('.desk-library'),workbench=body.querySelector('.writing-workbench'),metrics=body.querySelector('.metric-strip');if(library)top.append(library);if(workbench)top.append(workbench);if(metrics)top.append(metrics)}else{top.innerHTML=unifiedHeading(view==='tasks'?'משימות':view==='gantt'?'גאנט מחקרים':'קבצים וגרסאות',view==='tasks'?'תכנון, עדיפויות ומעקב אחר הצעד הבא.':view==='gantt'?'לוח זמנים לפי מאמר ומצב העבודה.':'חיפוש ושיוך מסמכי המחקר לפרקים.');if(view==='tasks'){const toolbar=body.querySelector('.task-unified-toolbar');if(toolbar)top.append(toolbar);top.querySelectorAll('.task-reset').forEach(x=>x.remove());const sortSelect=top.querySelector('select[data-task-sort]');sortSelect?.remove();if(!top.querySelector('[data-all-tasks]')){const button=document.createElement('button');button.textContent=uiText('הכול');button.dataset.allTasks='true';button.onclick=()=>{window.taskCategory='';window.taskrange='הכול';filter='';q='';renderBody()};top.querySelector('.task-control-row')?.append(button)}}if(view==='gantt'){const picker=body.querySelector('.article-picker'),head=body.querySelector('.sectionhead');if(picker)top.append(picker);if(head)top.append(head)}}body.prepend(top)}
  document.querySelectorAll('.research-task-card').forEach(card=>{const id=card.querySelector('button')?.getAttribute('onclick')?.match(/edit\('tasks','([^']+)'/ )?.[1],t=S.tasks.find(t=>t.id===id);if(t&&urgentNear(t)){card.classList.add('urgent-near');card.insertAdjacentHTML('afterbegin',urgentTag(t))}});bindPaperDrag();if(location.hostname!=='127.0.0.1'&&location.hostname!=='localhost'){const footer=document.querySelector('aside footer');if(footer)footer.innerHTML=(uiText("סביבת מחקר אישית") + "<br>" + uiText("אחסון מקוון פרטי") + "<br>" + uiText("גישה לחשבון שלך בלבד"));$('#saved').textContent=uiText('נתונים שמורים באתר הפרטי')}
 };
 
@@ -921,7 +912,8 @@ installResearchSections();
 const renderBeforeDeskSections = renderBody;
 renderBody = function() {
   renderBeforeDeskSections();
-  if (!paperId && view === 'dashboard' && typeof window.organizeResearchDesk === 'function') window.organizeResearchDesk();
+  const library = document.querySelector('.desk-library');
+  if (library) bindDeskDepth(library);
 };
 load().then(()=>{if(S){if(location.hash==='#backup'){go('settings');return}if(location.hash==='#papers')go('papers');if(location.hash==='#files')go('files');let chatDeep=location.hash.match(/^#chat(?:\/([^/]+))?$/);if(chatDeep){openResearchChat(chatDeep[1]?decodeURIComponent(chatDeep[1]):'');return}let deep=location.hash.match(/^#paper\/([^/]+)(?:\/(files|chapters|overview|tasks))?/);if(deep&&S.papers.some(p=>p.id===deep[1])){openPaper(deep[1]);tab=deep[2]||'overview';renderBody()}let reminders=S.opportunities.filter(o=>o.reminder&&o.reminder<=today()&&!['נסגר','נדחה'].includes(o.status));if(reminders.length)toast('תזכורות להזדמנויות: '+reminders.map(o=>o.title).join(', '))}});
 bindAuroraControls();
