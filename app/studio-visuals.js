@@ -100,11 +100,22 @@ function mountEdgeRail(rail) {
   edge.title = edge.ariaLabel = uiText('אזורי עבודה');
   rail.before(edge);
 
+  const menu = document.createElement('button');
+  menu.id = 'workspace-page-menu';
+  menu.type = 'button';
+  menu.setAttribute('aria-controls', rail.id);
+  menu.setAttribute('data-ui-aria', 'אזורי עבודה');
+  menu.setAttribute('data-ui-title', 'אזורי עבודה');
+  menu.title = menu.ariaLabel = uiText('אזורי עבודה');
+  menu.innerHTML = '<span aria-hidden="true"></span>';
+  document.querySelector('.workspace-heading')?.prepend(menu);
+
+  let returnButton = edge;
   let closeTimer;
   function setOpen(open) {
     clearTimeout(closeTimer);
     document.body.toggleAttribute('data-rail-open',desktop.matches && open);
-    edge.setAttribute('aria-expanded',String(desktop.matches && open));
+    for (const trigger of [edge, menu]) trigger.setAttribute('aria-expanded', String(desktop.matches && open));
     rail.inert = desktop.matches && !open;
   }
   function maybeClose() {
@@ -119,7 +130,13 @@ function mountEdgeRail(rail) {
     });
     area.addEventListener('pointerleave',()=>{ if(desktop.matches) maybeClose(); });
   }
+  menu.addEventListener('click', () => {
+    returnButton = menu;
+    setOpen(true);
+    (rail.querySelector('#nav [aria-current="page"]') || rail.querySelector('#nav button'))?.focus({preventScroll:true});
+  });
   edge.addEventListener('click',event=>{
+    returnButton = edge;
     setOpen(true);
     if (event.detail===0) (rail.querySelector('#nav [aria-current="page"]') || rail.querySelector('#nav button'))?.focus({preventScroll:true});
   });
@@ -127,7 +144,7 @@ function mountEdgeRail(rail) {
     if (event.key!=='Escape' || !document.body.hasAttribute('data-rail-open') || document.querySelector('dialog[open]')) return;
     const returnFocus=rail.contains(document.activeElement);
     setOpen(false);
-    if (returnFocus) edge.focus({preventScroll:true});
+    if (returnFocus) (returnButton.getClientRects().length ? returnButton : edge).focus({preventScroll:true});
   });
   document.addEventListener('focusin',event=>{
     if (desktop.matches && event.target!==edge && !rail.contains(event.target) && !rail.matches(':hover')) setOpen(false);
