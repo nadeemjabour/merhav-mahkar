@@ -1,33 +1,161 @@
-const normal=s=>String(s||'').normalize('NFD').replace(/\p{M}/gu,'').replace(/[״׳"']/g,'').toLowerCase();
-const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jerusalem',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-const date=v=>v?new Date(v).toLocaleDateString('he-IL',{timeZone:'Asia/Jerusalem'}):'לא הוזן';
-function resolvePaper(s,q,chosen,context){if(chosen)return chosen;let code=q.match(/(?:מאמר|מחקר|article)\s*0?(\d+)/i);if(code){let p=s.papers.find(p=>Number(p.code.replace(/\D/g,''))===Number(code[1]));if(p)return p.id}if(/כל המאמרים|כל המחקרים|תמונת.*כללי|all papers/.test(q))return '';if(/ערבית/.test(q)){let arabic=s.papers.filter(p=>p.language==='العربية');if(arabic.length===1)return arabic[0].id}let terms=normal(q).split(/[^\p{L}\p{N}]+/u).filter(t=>t.length>2&&!['מצב','מחקר','מאמר','של','מה','האם','המחקר','המאמר'].includes(t)),rank=s.papers.map(p=>({id:p.id,score:terms.reduce((n,t)=>n+(normal(p.title+' '+p.topic).includes(t)?1:0),0)})).sort((a,b)=>b.score-a.score);return rank[0]?.score>0&&rank[0].score>(rank[1]?.score||0)?rank[0].id:context||''}
-function answerResearchQuestion(s,question,paperId='',context=''){
- if(paperId&&!s.papers.some(p=>p.id===paperId))throw Error('מאמר לא נמצא');let scoped=resolvePaper(s,question,paperId,context),papers=s.papers.filter(p=>!scoped||p.id===scoped),ids=new Set(papers.map(p=>p.id)),tasks=s.tasks.filter(t=>ids.has(t.paperId)),chapters=s.chapters.filter(c=>ids.has(c.paperId)),files=s.files.filter(f=>ids.has(f.paperId)&&!f.sensitive),q=normal(question),links=[],lines=[];let title=scoped?papers[0].code+' — '+papers[0].title:'כל המאמרים';
- const paperLink=p=>links.push({kind:'paper',paperId:p.id,label:p.code+' — '+p.title});
- const taskLink=t=>links.push({kind:'task',paperId:t.paperId,id:t.id,label:t.title});
- const isLate=t=>t.due&&t.due<today()&&t.status!=='הושלם';
- let intent=/מה חסר|מה נותר|חסר|להשלים|ناقص|missing/.test(q)?'missing':/באיחור|איחור|overdue/.test(q)?'late':/חשיבות|עדיפות|דחופ|priority/.test(q)?'high':/מועד|תאריך|דדליין|deadline/.test(q)?'dates':/קובץ|קבצים|מסמכ|ملفات|files/.test(q)?'files':/מקורות|ביבליוגרפ|مراجع|sources/.test(q)?'sources':/משימ|לקדם|הבא|לעשות|مهام|tasks|next/.test(q)?'tasks':/פרקים|פרק|فصول|chapters/.test(q)?'chapters':/תמונ|מצב|שלב|עומד|מתקדם|סיכום|סקירה כללית|התקדמות|ملخص|حالة|summary|status|overview/.test(q)?'summary':'search';
- lines.push('תמונת מצב מתוך הנתונים השמורים: '+title,'');
- if(intent==='summary'){for(let p of papers){let items=[...tasks.filter(t=>t.paperId===p.id),...chapters.filter(c=>c.paperId===p.id)],done=items.filter(x=>x.status==='הושלם').length,open=tasks.filter(t=>t.paperId===p.id&&t.status!=='הושלם'),next=open.sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999'))[0];lines.push(p.code+' — '+p.title,'שלב: '+(p.status||'לא הוזן')+'; מצב עבודה: '+(p.work||'לא הוזן'),'מעקב ביצוע: '+done+' מתוך '+items.length+' משימות ופרקים הושלמו'+(items.length?' ('+Math.round(done/items.length*100)+'%)':''),'משימות פתוחות: '+open.length+'; באיחור: '+open.filter(isLate).length,'מועד יעד: '+date(p.due),'הצעד הבא: '+(next?.title||'טרם הוגדר'), '');paperLink(p)}lines.push('ההתקדמות היא חישוב של המשימות והפרקים שסומנו כהושלמו; היא אינה הערכה מדעית של מוכנות המאמר.')}
- else if(['tasks','late','high'].includes(intent)){let chosen=tasks.filter(t=>t.status!=='הושלם'&&(intent!=='late'||isLate(t))&&(intent!=='high'||['גבוהה','דחופה'].includes(t.priority))).sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999'));lines.push(intent==='late'?'משימות באיחור:':intent==='high'?'משימות פתוחות בעדיפות גבוהה או דחופה:':'המשימות הפתוחות והצעדים הבאים:');for(let t of chosen.slice(0,12)){lines.push('• '+t.title+' | '+(s.papers.find(p=>p.id===t.paperId)?.code||'')+' | יעד: '+date(t.due)+' | '+t.status);taskLink(t)}if(!chosen.length)lines.push('לא נמצאו משימות המתאימות לבקשה.');if(chosen.length>12)lines.push('מוצגות 12 מתוך '+chosen.length+' משימות.')}
- else if(intent==='missing'){for(let p of papers){lines.push(p.code+' — '+p.title,'מידע חסר שתועד במחקר: '+(p.missing||'לא הוזן'));let roots=chapters.filter(c=>c.paperId===p.id&&!c.parentId),hasText=c=>{let set=new Set([c.id]),changed=true;while(changed){changed=false;for(let child of chapters)if(set.has(child.parentId)&&!set.has(child.id)){set.add(child.id);changed=true}}return chapters.some(x=>set.has(x.id)&&x.content?.trim())};let empty=roots.filter(c=>!hasText(c));lines.push('פרקים ללא תוכן שמור, גם לאחר בדיקת תתי־הפרקים: '+(empty.map(c=>c.title).join(', ')||'אין'));let required=s.requirements.filter(r=>r.paperId===p.id&&!r.fileId);for(let r of required)lines.push('• קובץ נדרש: '+r.title+' — '+(r.reason||'צורך לא הוזן'));lines.push('');paperLink(p)}}
- else if(intent==='dates'){let deadlines=[...papers.filter(p=>p.due).map(p=>({label:p.code+' — '+p.title,due:p.due})),...tasks.filter(t=>t.due&&t.status!=='הושלם').map(t=>({label:t.title,due:t.due}))].sort((a,b)=>a.due.localeCompare(b.due));lines.push('מועדים שנשמרו במערכת:');lines.push(...(deadlines.length?deadlines.map(x=>'• '+date(x.due)+' — '+x.label):['לא הוזנו מועדי יעד מתאימים.']));for(let p of papers)paperLink(p)}
- else if(intent==='files'){lines.push('נמצאו '+files.length+' קבצים וגרסאות זמינים ברשומות שנבחרו.');for(let f of [...files].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,8)){lines.push('• '+f.name+' | '+(f.category||'לא סווג')+' | '+date(f.date));links.push({kind:'file',id:f.id,paperId:f.paperId,label:f.name})}if(s.files.some(f=>ids.has(f.paperId)&&f.sensitive))lines.push('חומרי ראיונות פנימיים אינם מפורטים בשיחה הכללית; ניתן לגשת אליהם מתוך קבצי המאמר.');lines.push('זמינות הקבצים היא במחשב שבו האפליקציה פועלת. תוכן הקבצים עצמם לא נותח בשיחה.')}
- else if(intent==='sources'){
-   const chapterIds=new Set(chapters.map(c=>c.id));
-   const sources=s.sources.filter(r=>ids.has(r.paperId)||(r.paperIds||[]).some(id=>ids.has(id))||chapterIds.has(r.chapterId));
-   lines.push('תועדו '+sources.length+' רשומות מקורות.');
-   for(const source of sources.slice(0,8)){
-     const title=source.title||source.bibliography||'מקור ללא כותרת';
-     lines.push('• '+(source.bibliography||title)+' — אימות: '+(source.verification||'לא אומת'));
-     links.push({kind:'source',id:source.id,label:title});
-   }
-   if(!sources.length)lines.push('אין ברשומות שנבחרו מקורות ביבליוגרפיים שהוזנו. לא הושלמו פרטים ממקור חיצוני.');
- }
- else if(intent==='chapters'){for(let p of papers){lines.push(p.code+' — '+p.title);for(let c of chapters.filter(c=>c.paperId===p.id&&!c.parentId).sort((a,b)=>a.order-b.order)){lines.push('• '+c.title+' — '+(c.status||'לא הוזן'));links.push({kind:'chapter',paperId:p.id,id:c.id,label:c.title})}lines.push('')}}
- else if(scoped){let terms=q.split(/[^\p{L}\p{N}]+/u).filter(t=>t.length>2&&!['כתוב','אומר','המחקר','המאמר','אפשר','מהו','about','what','does'].includes(t)),matches=chapters.filter(c=>c.content).map(c=>({c,score:terms.reduce((n,t)=>n+(normal(c.title+' '+c.content).includes(t)?1:0),0)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,3);if(matches.length){lines.push('קטעים שנמצאו בתוכן הפרקים השמור, ללא ניתוח או אימות מדעי:');for(let {c}of matches){let content=c.content.replace(/\s+/g,' '),term=terms.find(t=>normal(content).includes(t)),at=term?normal(content).indexOf(term):0,begin=Math.max(0,at-90);lines.push(c.title+':','״'+content.slice(begin,begin+550)+'״','');links.push({kind:'chapter',paperId:c.paperId,id:c.id,label:'פתיחת '+c.title})}}else lines.push('לא מצאתי תשובה בתוכן הפרקים השמור. אפשר לשאול על מצב המאמר, משימות, מידע חסר, קבצים או מועדי יעד.')}
- else lines.push('אפשר לשאול על תמונת המצב, מה לקדם, משימות באיחור, מידע חסר ומועדים. לשאלה על תוכן מאמר מסוים, בחרו מאמר למעלה או ציינו את הקוד שלו, למשל מאמר05.');
- return {text:lines.join('\n'),links:links.slice(0,15),contextPaperId:scoped};
+const {replyLanguage} = require('./research-chat-language.cjs');
+
+const normal = text => String(text || '').normalize('NFD').replace(/\p{M}/gu,'').replace(/[״׳"']/g,'').toLowerCase();
+const today = () => new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Jerusalem',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+
+// Route the exact translated starter prompts like their original Hebrew versions.
+// Use the original question for storage and for searches through research text.
+const prompts = new Map([
+  ['what is the overall status', 'מה תמונת המצב הכללית'],
+  ['ما الحالة العامة', 'מה תמונת המצב הכללית'],
+  ['what should i work on next', 'מה כדאי לקדם עכשיו'],
+  ['ما الخطوة التالية', 'מה כדאי לקדם עכשיו'],
+  ['which sources are available', 'אילו מקורות יש'],
+  ['ما المراجع المتاحة', 'אילו מקורות יש']
+]);
+
+function resolvePaper(s, q, chosen, context) {
+  if (chosen) return chosen;
+  const code = q.match(/(?:מאמר|מחקר|article|مقال)\s*0?(\d+)/i);
+  if (code) {
+    const paper = s.papers.find(p=>Number(p.code.replace(/\D/g,''))===Number(code[1]));
+    if (paper) return paper.id;
+  }
+  if (/כל המאמרים|כל המחקרים|תמונת.*כללי|all papers/.test(q)) return '';
+  if (/ערבית/.test(q)) {
+    const arabic = s.papers.filter(p=>p.language==='العربية');
+    if (arabic.length === 1) return arabic[0].id;
+  }
+  const terms = normal(q).split(/[^\p{L}\p{N}]+/u).filter(t=>t.length>2 && !['מצב','מחקר','מאמר','של','מה','האם','המחקר','המאמר'].includes(t));
+  const rank = s.papers.map(p=>({id:p.id,score:terms.reduce((n,t)=>n+(normal(p.title+' '+p.topic).includes(t)?1:0),0)})).sort((a,b)=>b.score-a.score);
+  return rank[0]?.score>0 && rank[0].score>(rank[1]?.score||0) ? rank[0].id : context||'';
 }
-module.exports={answerResearchQuestion};
+
+function questionIntent(q) {
+  if (/מה חסר|מה נותר|חסר|להשלים|ناقص|نواقص|missing/.test(q)) return 'missing';
+  if (/באיחור|איחור|متاخر|overdue/.test(q)) return 'late';
+  if (/חשיבות|עדיפות|דחופ|اولوية|priority/.test(q)) return 'high';
+  if (/מועד|תאריך|דדליין|موعد|مواعيد|deadline/.test(q)) return 'dates';
+  if (/קובץ|קבצים|מסמכ|ملفات|files/.test(q)) return 'files';
+  if (/מקורות|ביבליוגרפ|مراجع|sources/.test(q)) return 'sources';
+  if (/משימ|לקדם|הבא|לעשות|مهام|tasks|next/.test(q)) return 'tasks';
+  if (/פרקים|פרק|فصول|chapters/.test(q)) return 'chapters';
+  if (/תמונ|מצב|שלב|עומד|מתקדם|סיכום|סקירה כללית|התקדמות|ملخص|حالة|summary|status|overview/.test(q)) return 'summary';
+  return 'search';
+}
+
+function answerResearchQuestion(s, question, paperId='', context='', language='he') {
+  if (paperId && !s.papers.some(p=>p.id===paperId)) throw Error('מאמר לא נמצא');
+  const {say,choice,date} = replyLanguage(language);
+  const q = normal(question);
+  const routingQuestion = prompts.get(q.trim().replace(/[?؟]+$/u,'').trim()) || question;
+  const scoped = resolvePaper(s,routingQuestion,paperId,context);
+  const papers = s.papers.filter(p=>!scoped||p.id===scoped);
+  const ids = new Set(papers.map(p=>p.id));
+  const tasks = s.tasks.filter(t=>ids.has(t.paperId));
+  const chapters = s.chapters.filter(c=>ids.has(c.paperId));
+  const files = s.files.filter(f=>ids.has(f.paperId)&&!f.sensitive);
+  const paperName = paper => paper.code+' — '+paper.title;
+  const title = scoped ? paperName(papers[0]) : say('allPapers');
+  const lines = [say('header',{title}),''];
+  const links = [];
+  const paperLink = p => links.push({kind:'paper',paperId:p.id,label:paperName(p)});
+  const isLate = t => t.due && t.due<today() && t.status!=='הושלם';
+  const byDue = (a,b) => (a.due||'9999').localeCompare(b.due||'9999');
+  const intent = questionIntent(normal(routingQuestion));
+
+  if (intent === 'summary') {
+    for (const p of papers) {
+      const items = [...tasks.filter(t=>t.paperId===p.id),...chapters.filter(c=>c.paperId===p.id)];
+      const done = items.filter(x=>x.status==='הושלם').length;
+      const open = tasks.filter(t=>t.paperId===p.id&&t.status!=='הושלם');
+      const next = open.sort(byDue)[0];
+      lines.push(paperName(p),
+        say('stage',{stage:choice('stage',p.status),work:choice('work',p.work)}),
+        say('progress',{done,total:items.length,percent:items.length?' ('+Math.round(done/items.length*100)+'%)':''}),
+        say('openTasks',{count:open.length,late:open.filter(isLate).length}),
+        say('targetDate',{date:date(p.due)}),say('nextStep',{step:next?.title||say('notDefined')}),'');
+      paperLink(p);
+    }
+    lines.push(say('progressNote'));
+  } else if (['tasks','late','high'].includes(intent)) {
+    const chosen = tasks.filter(t=>t.status!=='הושלם' && (intent!=='late'||isLate(t)) && (intent!=='high'||['גבוהה','דחופה'].includes(t.priority))).sort(byDue);
+    lines.push(say(intent==='late'?'lateTasks':intent==='high'?'priorityTasks':'nextTasks'));
+    for (const t of chosen.slice(0,12)) {
+      lines.push(say('task',{title:t.title,code:s.papers.find(p=>p.id===t.paperId)?.code||'',date:date(t.due),status:choice('task',t.status)}));
+      links.push({kind:'task',paperId:t.paperId,id:t.id,label:t.title});
+    }
+    if (!chosen.length) lines.push(say('noTasks'));
+    if (chosen.length>12) lines.push(say('taskLimit',{count:chosen.length}));
+  } else if (intent==='missing') {
+    for (const p of papers) {
+      lines.push(paperName(p),say('missing',{detail:p.missing||say('unset')}));
+      const roots = chapters.filter(c=>c.paperId===p.id&&!c.parentId);
+      function hasText(c) {
+        const set = new Set([c.id]);
+        let changed = true;
+        while (changed) {
+          changed = false;
+          for (const child of chapters) {
+            if (set.has(child.parentId) && !set.has(child.id)) { set.add(child.id); changed=true; }
+          }
+        }
+        return chapters.some(x=>set.has(x.id)&&x.content?.trim());
+      }
+      const empty = roots.filter(c=>!hasText(c));
+      lines.push(say('emptyChapters',{titles:empty.map(c=>c.title).join(', ')||say('none')}));
+      for (const r of s.requirements.filter(r=>r.paperId===p.id&&!r.fileId)) {
+        lines.push(say('requiredFile',{title:r.title,reason:r.reason||say('noReason')}));
+      }
+      lines.push('');
+      paperLink(p);
+    }
+  } else if (intent==='dates') {
+    const deadlines = [...papers.filter(p=>p.due).map(p=>({label:paperName(p),due:p.due})),
+      ...tasks.filter(t=>t.due&&t.status!=='הושלם').map(t=>({label:t.title,due:t.due}))].sort((a,b)=>a.due.localeCompare(b.due));
+    lines.push(say('dates'));
+    lines.push(...(deadlines.length?deadlines.map(x=>'• '+date(x.due)+' — '+x.label):[say('noDates')]));
+    for (const p of papers) paperLink(p);
+  } else if (intent==='files') {
+    lines.push(say('files',{count:files.length}));
+    for (const f of [...files].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,8)) {
+      lines.push('• '+f.name+' | '+choice('category',f.category,'unclassified')+' | '+date(f.date));
+      links.push({kind:'file',id:f.id,paperId:f.paperId,label:f.name});
+    }
+    if (s.files.some(f=>ids.has(f.paperId)&&f.sensitive)) lines.push(say('privateFiles'));
+    lines.push(say('fileNote'));
+  } else if (intent==='sources') {
+    const chapterIds = new Set(chapters.map(c=>c.id));
+    const sources = s.sources.filter(r=>ids.has(r.paperId)||(r.paperIds||[]).some(id=>ids.has(id))||chapterIds.has(r.chapterId));
+    lines.push(say('sources',{count:sources.length}));
+    for (const source of sources.slice(0,8)) {
+      const title = source.title||source.bibliography||say('untitledSource');
+      lines.push(say('verification',{title:source.bibliography||title,status:choice('verification',source.verification,'notVerified')}));
+      links.push({kind:'source',id:source.id,label:title});
+    }
+    if (!sources.length) lines.push(say('noSources'));
+  } else if (intent==='chapters') {
+    for (const p of papers) {
+      lines.push(paperName(p));
+      for (const c of chapters.filter(c=>c.paperId===p.id&&!c.parentId).sort((a,b)=>a.order-b.order)) {
+        lines.push('• '+c.title+' — '+choice('work',c.status));
+        links.push({kind:'chapter',paperId:p.id,id:c.id,label:c.title});
+      }
+      lines.push('');
+    }
+  } else if (scoped) {
+    const terms = q.split(/[^\p{L}\p{N}]+/u).filter(t=>t.length>2&&!['כתוב','אומר','המחקר','המאמר','אפשר','מהו','about','what','does'].includes(t));
+    const matches = chapters.filter(c=>c.content).map(c=>({c,score:terms.reduce((n,t)=>n+(normal(c.title+' '+c.content).includes(t)?1:0),0)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,3);
+    if (matches.length) {
+      lines.push(say('excerpts'));
+      for (const {c} of matches) {
+        const content = c.content.replace(/\s+/g,' '), term = terms.find(t=>normal(content).includes(t));
+        const begin = Math.max(0,(term?normal(content).indexOf(term):0)-90);
+        lines.push(c.title+':',say('quote',{text:content.slice(begin,begin+550)}),'');
+        links.push({kind:'chapter',paperId:c.paperId,id:c.id,label:say('openChapter',{title:c.title})});
+      }
+    } else lines.push(say('noExcerpt'));
+  } else lines.push(say('help'));
+  return {text:lines.join('\n'),links:links.slice(0,15),contextPaperId:scoped};
+}
+module.exports = {answerResearchQuestion};

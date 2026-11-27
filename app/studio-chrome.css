@@ -47,3 +47,20 @@ html body .workspace-header-actions .studio-type button { width:44px; height:44p
   #workspace-nav-toggle > span + span { display:none; }
 }
 @media print { .workspace-header-actions { display:none !important; } }
+
+#workspace-page-menu { display:none; }
+@media screen and (min-width:851px) {
+  body[data-edge-rail]:has(.archive-center,.conversation-workspace) .workspace-heading {
+    display:flex; align-items:center; gap:.7rem;
+  }
+  html body[data-edge-rail]:has(.archive-center,.conversation-workspace) #workspace-page-menu {
+    display:grid; place-items:center; flex:none; width:44px; height:44px; padding:0;
+    border:1px solid var(--workspace-border); border-radius:12px;
+    background:var(--workspace-surface); color:var(--workspace-ink); cursor:pointer;
+  }
+  #workspace-page-menu span {
+    width:1.05rem; height:.8rem; border-block:2px solid;
+    background:linear-gradient(currentColor,currentColor) center / 100% 2px no-repeat;
+  }
+  #workspace-page-menu:focus-visible { outline:3px solid var(--workspace-accent-deep); outline-offset:2px; }
+}

@@ -5,7 +5,7 @@ function element() {
   return {
     innerHTML: '', textContent: '', dataset: {}, elements: {}, style: {}, open: false,
     classList: { toggle(){}, add(){}, remove(){}, contains(){return false;} },
-    append(){}, prepend(){}, setAttribute(){}, remove(){}, addEventListener(){},
+    append(){}, prepend(){}, setAttribute(){}, hasAttribute(){return false;}, remove(){}, addEventListener(){},
     insertAdjacentElement(){}, insertAdjacentHTML(){}, querySelector(){return null;}, querySelectorAll(){return [];},
     showModal(){this.open=true;}, close(){this.open=false;}
   };
@@ -16,6 +16,7 @@ function node(selector) {
 }
 const slots = new Set(['#nav','#title','#saved','#app','#body','#toolsbar','#modal','#editor','#upload','#restore','#workspace-project','#workspace-nav-toggle','#quickAdd']);
 const doc = {documentElement:{lang:'he',dir:'rtl'}, querySelector: s => slots.has(s) ? node(s) : null, querySelectorAll:()=>[],
+  getElementById: id => doc.querySelector('#'+id),
   createElement:element, addEventListener(){}, head:element(), body:element()};
 let source=require('./render-workspace.cjs')().split('<script>')[1].split('</script>')[0];source=source.slice(0,source.lastIndexOf('load().then('));
 const ctx=vm.createContext({console,crypto:require('node:crypto').webcrypto,document:doc,location:{hostname:'localhost',hash:''},history:{replaceState(){}},window:{matchMedia:()=>({matches:false,addEventListener(){}})},localStorage:{getItem:()=>null},setTimeout:()=>0,clearTimeout(){},setInterval:()=>0,clearInterval(){},Intl,Date,URL,FormData,fetch:()=>{throw Error('Unexpected network')}});vm.runInContext(source,ctx);
@@ -29,3 +30,65 @@ assert.ok(vm.runInContext("chapterEvidence('p1','c1').length===2",ctx));
 assert.ok(vm.runInContext("chapterEvidence('other','other').length===0",ctx));
 assert.ok(!source.includes('type="button" class="${cls}"')||source.includes('function action'));
 console.log('PASS: all 11 main views, 7 paper tabs and 8 record editor templates render. Browser interaction remains unverified.');
+
+const run = script => vm.runInContext(script,ctx);
+for(const slot of ['#chat-evidence-body','#archive-bin-results','#archive-export-body','#backup-paper','#download-paper-backup']) slots.add(slot);
+run(`S.sources=[
+  {id:'book-1',paperId:'p1',title:'First reference'},
+  {id:'book-2',paperIds:['p1'],title:'Second reference'},
+  {id:'book-3',chapterId:'c1',title:'Third reference'},
+  {id:'book-4',paperIds:['p1'],title:'Fourth <reference>'},
+  {id:'other',paperIds:['p2'],title:'Unrelated reference'}];
+  chatPaperId='p1'; chatConversation={messages:[]}; view='chat'; paperId=''; render()`);
+let chatHtml=node('#body').innerHTML;
+assert.match(chatHtml,/Third reference/);
+assert.doesNotMatch(chatHtml,/Fourth|Unrelated/);
+run('toggleChatLibrary()');
+let evidence=node('#chat-evidence-body').innerHTML;
+assert.match(evidence,/Fourth &lt;reference&gt;/);
+assert.doesNotMatch(evidence,/Unrelated reference/);
+run('toggleChatLibrary()');
+assert.doesNotMatch(node('#chat-evidence-body').innerHTML,/Fourth/);
+
+// Keep normal Enter for newlines and let IMEs commit text without accidentally sending it.
+const shortcutHandler=chatHtml.match(/<textarea\b[^>]*\bonkeydown="([^"]+)"/)?.[1];
+assert.ok(shortcutHandler,'chat composer keyboard handler');
+const onKey=vm.runInContext('(function(event){'+shortcutHandler+'})',ctx);
+for(const [key,ctrlKey,metaKey,isComposing,shouldSend] of [
+  ['Enter',false,false,false,false],['Enter',true,false,false,true],['Enter',false,true,false,true],
+  ['Enter',true,false,true,false],['a',true,false,false,false]
+]) {
+  let sent=false, prevented=false;
+  onKey.call({form:{requestSubmit(){sent=true;}}},{key,ctrlKey,metaKey,isComposing,preventDefault(){prevented=true;}});
+  assert.equal(sent,shouldSend);
+  assert.equal(prevented,shouldSend);
+}
+
+doc.documentElement.lang='en';
+run(`S.deletedFiles=[
+  {id:'deleted-1',paperId:'p1',name:'Journal <draft>.txt',deletedAt:'2026-11-01'},
+  {id:'deleted-2',paperId:'p2',name:'Other notes.csv',deletedAt:'2026-11-03'}];
+  S.papers.push({id:'p2',title:'Interviews'});
+  view='settings'; paperId=''; render()`);
+const archiveHtml=node('#body').innerHTML;
+assert.match(archiveHtml,/href="\/api\/backup"/);
+assert.match(archiveHtml,/Journal &lt;draft&gt;\.txt/);
+run("archiveSearch('INTERVIEWS')");
+assert.match(node('#archive-bin-results').innerHTML,/Other notes\.csv/);
+assert.doesNotMatch(node('#archive-bin-results').innerHTML,/Journal/);
+run("archiveSearch('journal')");
+assert.doesNotMatch(node('#archive-bin-results').innerHTML,/Other notes/);
+assert.match(node('#archive-bin-results').innerHTML,/deleted-1/);
+run("archiveSearch('unmatched')");
+assert.match(node('#archive-bin-results').innerHTML,/No files match this search/);
+run("archiveSetScope('paper')");
+assert.match(node('#archive-export-body').innerHTML,/<button\b[^>]*id="download-paper-backup"[^>]* disabled/);
+const pid='study/סקר & 2';
+node('#backup-paper').value=pid;
+run('updateBackupChoice()');
+assert.equal(node('#download-paper-backup').disabled,false);
+let download;
+doc.createElement=()=>({click(){download=this.href;},remove(){}});
+run('downloadPaperBackup()');
+assert.equal(download,'/api/backup?paperId='+encodeURIComponent(pid));
+console.log('PASS: chat evidence scope and keyboard actions, archive search and scoped ZIP downloads.');
