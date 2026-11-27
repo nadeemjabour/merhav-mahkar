@@ -13,7 +13,7 @@ for(const name of ['workspace-actions','chapter-structure','record-saving','pape
 }
 let html=require('./app/render-workspace.cjs')();
 html=html.replace(/async function openAppWindow\(\)\{[^\n]+/,"function openAppWindow(){window.open(location.href,'_blank','noopener');}");
-const analysisUi=fs.readFileSync(path.join(base,'analysis-workbench.js'),'utf8');
+const analysisUi=require('./app/scalable-type.cjs')(fs.readFileSync(path.join(base,'analysis-workbench.js'),'utf8'));
 html=html.replace('</script></html>','</script><script>'+analysisUi+'</script></html>');
 out+='const HTML='+JSON.stringify(html)+';\n';
 out+='const researchMcp=(()=>{const module={exports:{}};'+fs.readFileSync('mcp-tasks.cjs','utf8')+';return module.exports})();\n';

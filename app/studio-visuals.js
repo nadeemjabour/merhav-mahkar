@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const main = document.querySelector('body > main');
   if (!rail || !toggle || !main) return;
 
+  mountEdgeRail(rail);
   const scrim = document.createElement('div');
   scrim.className = 'studio-nav-scrim';
   scrim.setAttribute('aria-hidden', 'true');
@@ -86,3 +87,58 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   syncDrawer();
 });
+
+function mountEdgeRail(rail) {
+  const desktop = window.matchMedia('(min-width:851px) and (hover:hover) and (pointer:fine)');
+  const edge = document.createElement('button');
+  edge.type = 'button';
+  edge.id = 'workspace-rail-handle';
+  rail.id = 'workspace-sidebar';
+  edge.setAttribute('aria-controls',rail.id);
+  edge.setAttribute('data-ui-title','אזורי עבודה');
+  edge.setAttribute('data-ui-aria','אזורי עבודה');
+  edge.title = edge.ariaLabel = uiText('אזורי עבודה');
+  rail.before(edge);
+
+  let closeTimer;
+  function setOpen(open) {
+    clearTimeout(closeTimer);
+    document.body.toggleAttribute('data-rail-open',desktop.matches && open);
+    edge.setAttribute('aria-expanded',String(desktop.matches && open));
+    rail.inert = desktop.matches && !open;
+  }
+  function maybeClose() {
+    clearTimeout(closeTimer);
+    closeTimer = setTimeout(() => {
+      if (!rail.matches(':hover') && !edge.matches(':hover') && !rail.querySelector(':focus-visible')) setOpen(false);
+    },160);
+  }
+  for (const area of [edge,rail]) {
+    area.addEventListener('pointerenter',event=>{
+      if (desktop.matches && event.pointerType!=='touch') setOpen(true);
+    });
+    area.addEventListener('pointerleave',()=>{ if(desktop.matches) maybeClose(); });
+  }
+  edge.addEventListener('click',event=>{
+    setOpen(true);
+    if (event.detail===0) (rail.querySelector('#nav [aria-current="page"]') || rail.querySelector('#nav button'))?.focus({preventScroll:true});
+  });
+  document.addEventListener('keydown',event=>{
+    if (event.key!=='Escape' || !document.body.hasAttribute('data-rail-open') || document.querySelector('dialog[open]')) return;
+    const returnFocus=rail.contains(document.activeElement);
+    setOpen(false);
+    if (returnFocus) edge.focus({preventScroll:true});
+  });
+  document.addEventListener('focusin',event=>{
+    if (desktop.matches && event.target!==edge && !rail.contains(event.target) && !rail.matches(':hover')) setOpen(false);
+  });
+  document.addEventListener('pointerdown',event=>{
+    if (desktop.matches && event.target!==edge && !rail.contains(event.target)) setOpen(false);
+  });
+  function sync() {
+    document.body.toggleAttribute('data-edge-rail',desktop.matches);
+    setOpen(false);
+  }
+  desktop.addEventListener('change',sync);
+  sync();
+}

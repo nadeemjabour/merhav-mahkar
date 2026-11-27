@@ -2,7 +2,7 @@ import {SupabaseBucket} from '../server/supabase-bucket.mjs';
 import {authPage,escapeHtml} from '../server/auth-page.mjs';
 
 const json=(data,status=200)=>Response.json(data,{status});
-export function createHandler({env=process.env,fetcher=fetch,loadWorker=()=>import('../dist/server/workspace.mjs')}={}) {
+export function createHandler({env=process.env,fetcher=fetch,loadWorker=()=>import('../dist/server/workspace.mjs'),authorizeOnly=false,discoverWorkspace=false}={}) {
  return async function handle(request) {
   const url = new URL(request.url);
   // A Vercel document rewrite can pass the function destination as the request URL.
@@ -25,14 +25,15 @@ export function createHandler({env=process.env,fetcher=fetch,loadWorker=()=>impo
   try {
    if(!['GET','HEAD','POST'].includes(request.method))return finish(json({error:'Method not allowed'},405));
    if(request.method==='POST'&&request.headers.get('origin')!==url.origin)return finish(json({error:'מקור בקשה לא מורשה'},403));
-   const {SUPABASE_URL:base,SUPABASE_PUBLISHABLE_KEY:key,RESEARCH_WORKSPACE_ID:workspace}=env;
-   if(!base||!key||!workspace)return finish(json({error:'חיבור המרחב עדיין לא הוגדר'},503));
+   if((path==='/auth/login'||path==='/auth/signup')&&request.method!=='POST')return finish(page({entrance:false}));
+   const {SUPABASE_URL:base,SUPABASE_PUBLISHABLE_KEY:key,RESEARCH_WORKSPACE_ID:configuredWorkspace}=env;
+   let workspace=configuredWorkspace;
+   if(!base||!key||(!workspace&&!discoverWorkspace))return finish(json({error:'חיבור המרחב עדיין לא הוגדר'},503));
    const auth=async(endpoint,body,token)=>{
     const r=await fetcher(base+'/auth/v1/'+endpoint,{method:body?'POST':'GET',headers:{apikey:key,...(token?{Authorization:'Bearer '+token}:{}),...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
     const data=await r.json().catch(()=>({}));return {ok:r.ok,status:r.status,data};
    };
    if(path==='/auth/login'||path==='/auth/signup') {
-    if(request.method!=='POST')return finish(page());
     const text=await request.text();if(text.length>10000)return finish(json({error:'הבקשה גדולה מדי'},413));
     const b=JSON.parse(text),email=String(b.email||'').trim().toLowerCase(),password=String(b.password||'');
     if(!email.includes('@')||password.length<8)return finish(json({error:'יש להזין דוא״ל וסיסמה באורך 8 תווים לפחות'},400));
@@ -48,7 +49,7 @@ export function createHandler({env=process.env,fetcher=fetch,loadWorker=()=>impo
    if(path==='/auth/logout') {
     if(request.method!=='POST')return finish(json({error:'Method not allowed'},405));
     if(cookies.get('rw-access'))await auth('logout?scope=local',{},cookies.get('rw-access'));
-    setSession(null);return finish(json({redirect:'/'}));
+    setSession(null);return finish(json({redirect:'/auth/login'}));
    }
    let token=cookies.get('rw-access'),identity=token?await auth('user',null,token):null;
    if(!identity?.ok&&cookies.get('rw-refresh')) {
@@ -56,6 +57,24 @@ export function createHandler({env=process.env,fetcher=fetch,loadWorker=()=>impo
     if(refreshed.ok&&refreshed.data.access_token){setSession(refreshed.data);token=refreshed.data.access_token;identity=await auth('user',null,token);}else setSession(null);
    }
    if(!identity?.ok)return finish(path==='/'?page():json({error:'יש להתחבר למרחב המחקר מחדש'},401));
+   if(!workspace && discoverWorkspace) {
+    const access=new SupabaseBucket({url:base,key,token,fetcher});
+    const query=new URLSearchParams({user_id:'eq.'+identity.data.id,select:'workspace_id',limit:'2'});
+    const memberships=async()=>{
+     const response=await access.request('/rest/v1/workspace_members?'+query);
+     if(!response.ok)throw Error('בדיקת ההרשאה נכשלה');
+     return response.json();
+    };
+    let available=await memberships();
+    if(!available.length) {
+     const claimed=await access.request('/rest/v1/rpc/claim_workspace_access',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+     if(!claimed.ok)throw Error('בדיקת ההרשאה נכשלה');
+     available=await memberships();
+    }
+    if(available.length>1)return finish(json({error:'יש לבחור מרחב מחקר בהגדרות החיבור המקומי'},503));
+    workspace=available[0]?.workspace_id;
+    if(!workspace)return finish(path==='/'?page({pending:true,email:identity.data.email}):json({error:'אין לחשבון זה הרשאה למרחב'},403));
+   }
    const bucket=new SupabaseBucket({url:base,key,token,workspace,fetcher});
    let membership=await bucket.request('/rest/v1/workspace_members?'+new URLSearchParams({workspace_id:'eq.'+workspace,user_id:'eq.'+identity.data.id,select:'role'}));
    if(!membership.ok)throw Error('בדיקת ההרשאה נכשלה');
@@ -71,13 +90,13 @@ export function createHandler({env=process.env,fetcher=fetch,loadWorker=()=>impo
    if(request.method==='POST'&&!['owner','editor'].includes(members[0].role))return finish(json({error:'לחשבון זה הרשאת צפייה בלבד'},403));
    // Migration endpoints and the old Sites-specific MCP are not public APIs.
    if(path==='/mcp'||path.startsWith('/api/migration/'))return finish(json({error:'Not found'},404));
-   if(path==='/api/health')return finish(json({ok:true,storage:'Supabase',private:true}));
+   if(path==='/api/health'||authorizeOnly)return finish(json({ok:true,storage:'Supabase',private:true}));
    // Prevent a failed initialization from silently presenting an empty workspace.
    if(!await bucket.head('state.json'))return finish(json({error:'נתוני המרחב טרם הוכנו. אין צורך להעלות את הקבצים מחדש.'},503));
    const worker=(await loadWorker()).default;
    let response=await worker.fetch(request,{BUCKET:bucket,OPENAI_API_KEY:env.OPENAI_API_KEY});
    if(path==='/'&&response.ok) {
-    const account = `<details class="studio-account"><summary data-ui-aria="החשבון שלי" aria-label="החשבון שלי"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></summary><div><bdi>${escapeHtml(identity.data.email)}</bdi><button type="button" data-ui-text="יציאה" onclick="fetch('/auth/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(r=>{if(r.ok)location.assign('/')})">יציאה</button></div></details>`;
+    const account = `<details class="studio-account"><summary data-ui-aria="החשבון שלי" aria-label="החשבון שלי"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></summary><div><bdi>${escapeHtml(identity.data.email)}</bdi><button type="button" data-ui-text="יציאה" data-workspace-logout onclick="signOut()">יציאה</button></div></details>`;
     const html = (await response.text()).replace('<!-- signed-in-account -->', () => account);
     response=new Response(html,{headers:response.headers});
    }

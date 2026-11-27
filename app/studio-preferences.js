@@ -6,8 +6,11 @@
   const themeKey = 'merhav-theme';
   const names = { he: 'עברית', ar: 'العربية', en: 'English' };
   const chrome = {
+    'הוספה מהירה': ['Quick add', 'إضافة سريعة'],
+    'מצב שמירה': ['Save status', 'حالة الحفظ'],
     'החשבון שלי': ['My account', 'حسابي'],
     'יציאה': ['Sign out', 'تسجيل الخروج'],
+    'היציאה לא הושלמה. נסו שוב.': ['Sign-out could not be completed. Try again.', 'تعذّر تسجيل الخروج. حاول مجددًا.'],
     'מרחב המחקר': ['Research workspace', 'مساحة البحث'],
     'מרחב מחקר | פוסט דוקטורט': ['Research workspace | Postdoctoral research', 'مساحة البحث | أبحاث ما بعد الدكتوراه'],
     'פוסט דוקטורט ומאמרים': ['Postdoctoral research and papers', 'أبحاث ما بعد الدكتوراه ومقالات'],
@@ -123,20 +126,111 @@
       const source = statuses.find(key => key === saved.textContent || chrome[key].includes(saved.textContent));
       if (source) setText(saved, t(source));
     }
-    const add = find('#quickAdd');
-    if (add && ['＋ הוספה מהירה', ...chrome['＋ הוספה מהירה']].includes(add.textContent.trim())) {
-      setText(add, t('＋ הוספה מהירה'));
-    }
+    setToolbarAction(find('#quickAdd'),'plus',t('הוספה מהירה'));
+    setToolbarAction(find('#statistics-top-assistant'),'assistant',t('פתיחת עוזר בבחירת שיטה'));
+    setToolbarAction(find('#instrument-add-tool'),'instrument',t('＋ כלי מחקר חדש'));
+    const statusToggle=find('.studio-save summary');
+    const statusText=t('מצב שמירה')+' · '+(saved?.textContent || '');
+    setAttr(statusToggle,'aria-label',statusText);
+    setAttr(statusToggle,'title',statusText);
+    setAttr(find('.studio-account summary'),'title',t('החשבון שלי'));
     refreshControls();
   }
 
   const symbols = {
+    plus: '<path d="M12 4v16M4 12h16"/>',
+    minus: '<path d="M4 12h16"/>',
+    type: '<path d="M2 19 7.5 5 13 19M4.2 13.5h6.6M14 19l4-9 4 9m-6.4-3.5h4.8"/>',
+    saved: '<path d="M3 3h14l4 4v14H3zM7 3v6h10V3m-9 12 2.5 2.5L16 12"/>',
+    assistant: '<path d="m4 20 10-10 3 3L7 23zM15 3l.8 2.2L18 6l-2.2.8L15 9l-.8-2.2L12 6l2.2-.8zM20 7l.7 1.6L22 9l-1.3.5L20 11l-.6-1.5L18 9l1.4-.4z"/>',
+    instrument: '<path d="M9 3h6m-5 0v7l-5 8a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-8V3M8 15h8"/>',
     globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c4 4.5 4 13.5 0 18-4-4.5-4-13.5 0-18Z"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/>',
     moon: '<path d="M20.7 14A8.8 8.8 0 0 1 10 3.3 9 9 0 1 0 20.7 14Z"/>'
   };
   const icon = name => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + symbols[name] + '</svg>';
   let controls;
+  const typeKey = 'merhav-reading-size';
+  const typeSteps = [100,115,130,150,175,200];
+  function applyType(size, persist = false) {
+    const level = typeSteps.includes(Number(size)) ? Number(size) : 100;
+    page.style.fontSize = level + '%';
+    page.style.setProperty('--reading-ratio',String(level/100));
+    page.toggleAttribute('data-large-type',level >= 150);
+    const group = document.querySelector('.studio-type');
+    if (group) {
+      setAttr(group,'aria-label',t('גודל טקסט'));
+      const levelLabel = t('גודל טקסט')+' · '+level+'%';
+      const toggle = group.parentElement.querySelector('summary');
+      setAttr(toggle,'aria-label',levelLabel);
+      setAttr(toggle,'title',levelLabel);
+      setText(group.querySelector('output'),level+'%');
+      for(const button of group.querySelectorAll('button')){
+        const delta = Number(button.dataset.step);
+        button.disabled = !typeSteps[typeSteps.indexOf(level)+delta];
+        const label = t(delta < 0 ? 'הקטנת טקסט' : 'הגדלת טקסט');
+        setAttr(button,'aria-label',label);
+        setAttr(button,'title',label);
+      }
+    }
+    if (persist) write(typeKey,String(level));
+    return level;
+  }
+  let typeLevel = applyType(read(typeKey));
+
+function mountTypeControl(host) {
+  const details = document.createElement('details');
+  details.className='studio-widget studio-font';
+  details.setAttribute('name','workspace-utilities');
+  details.innerHTML='<summary class="studio-icon">'+icon('type')+'</summary><div class="studio-type" role="group"><button type="button" data-step="-1">'+icon('minus')+'</button><output aria-live="polite"></output><button type="button" data-step="1">'+icon('plus')+'</button></div>';
+  details.addEventListener('click',event=>{
+    const button = event.target.closest('[data-step]');
+    if (button) typeLevel=applyType(typeSteps[typeSteps.indexOf(typeLevel)+Number(button.dataset.step)],true);
+  });
+  host.prepend(details);
+  applyType(typeLevel);
+}
+
+function setToolbarAction(button, symbol, label) {
+  if (!button) return;
+  setAttr(button,'aria-label',label);
+  setAttr(button,'title',label);
+  if (button.dataset.toolbarIcon !== symbol) {
+    button.dataset.toolbarIcon=symbol;
+    button.classList.add('studio-icon');
+    button.innerHTML=icon(symbol);
+  }
+}
+
+function mountStatus(host) {
+  const status=host.querySelector('#saved');
+  if (!status) return;
+  const details=document.createElement('details');
+  details.className='studio-widget studio-save';
+  details.setAttribute('name','workspace-utilities');
+  details.innerHTML='<summary class="studio-icon">'+icon('saved')+'</summary>';
+  status.before(details);
+  details.append(status);
+  status.setAttribute('role','status');
+}
+
+function closeToolbarWidgets(host) {
+  document.addEventListener('click',event=>{
+    for(const item of host.querySelectorAll('details[open]')) {
+      if(!item.contains(event.target)) item.open=false;
+    }
+  });
+  host.addEventListener('keydown',event=>{
+    if(event.key!=='Escape') return;
+    const item=event.target.closest('details[open]');
+    if(item) {
+      item.open=false;
+      item.querySelector('summary').focus();
+      event.preventDefault();
+    }
+  });
+}
+
   function createControls() {
     const host = document.querySelector('.workspace-header-actions');
     if (!host) return;
@@ -144,7 +238,7 @@
     controls.className = 'studio-preferences';
     controls.setAttribute('role','group');
     const label = document.createElement('label');
-    label.className = 'studio-language';
+    label.className = 'studio-language studio-icon';
     label.innerHTML = icon('globe');
     const select = document.createElement('select');
     select.id = 'studio-language';
@@ -158,17 +252,27 @@
     const button = document.createElement('button');
     button.type = 'button';
     button.id = 'studio-theme';
+    button.className = 'studio-icon';
     button.addEventListener('click', () => setTheme(page.dataset.theme === 'dark' ? 'light' : 'dark'));
     controls.append(label, button);
     host.prepend(controls);
+    mountTypeControl(host);
+    mountStatus(host);
+    const account=host.querySelector('.studio-account');
+    if(account) { account.setAttribute('name','workspace-utilities'); account.querySelector('summary').classList.add('studio-icon'); }
+    closeToolbarWidgets(host);
     refreshControls();
   }
   function refreshControls() {
     if (!controls) return;
+    applyType(typeLevel);
     setAttr(controls,'aria-label',t('מראה ושפה'));
     const select = controls.querySelector('select');
     select.value = language;
-    setAttr(select, 'aria-label', t('שפת הממשק'));
+    const languageLabel=t('שפת הממשק')+' · '+names[language];
+    setAttr(select,'aria-label',t('שפת הממשק'));
+    setAttr(select,'title',languageLabel);
+    setAttr(select.parentElement,'title',languageLabel);
     const button = controls.querySelector('button');
     const dark = page.dataset.theme === 'dark';
     const label = t(dark ? 'מעבר למצב בהיר' : 'מעבר למצב כהה');
@@ -213,6 +317,7 @@
   window.MerhavUI = Object.freeze({ t, setLanguage, setTheme, get language() { return language; }, get theme() { return page.dataset.theme; } });
   systemTheme.addEventListener('change', () => { if (!explicitTheme) setTheme(null, false); });
   window.addEventListener('storage', event => {
+    if (event.key === typeKey || event.key === null) typeLevel=applyType(read(typeKey));
     if (event.key === languageKey || event.key === null) setLanguage(read(languageKey) || 'he', false);
     if (event.key === themeKey || event.key === null) setTheme(read(themeKey), false);
   });
@@ -230,7 +335,8 @@
     const observer = new MutationObserver(records => {
       let chromeChanged = false;
       for (const record of records) {
-        if (record.target.parentElement?.closest('.studio-preferences')) continue;
+        if (record.target.parentElement?.closest('.studio-preferences, .studio-font')) continue;
+        if ([...record.addedNodes].some(node => ['statistics-top-assistant','instrument-add-tool'].includes(node.id))) chromeChanged = true;
         if (record.target.nodeType === Node.ELEMENT_NODE && record.target.closest('#nav, #saved, #title, #workspace-project, #quickAdd')) chromeChanged = true;
         for (const node of record.addedNodes) {
           if (node.nodeType === Node.ELEMENT_NODE) applyLabels(node);
