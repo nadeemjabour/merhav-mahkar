@@ -6,7 +6,7 @@ out+='const JSZip=(()=>{const module={exports:{}};const exports=module.exports;'
 const base=path.resolve('app');
 out+='const modules={};const path={sep:"/",join:(...p)=>p.join("/").replaceAll("\\\\","/"),resolve:(...p)=>p.join("/").replaceAll("\\\\","/"),dirname:p=>p.slice(0,p.lastIndexOf("/"))};\n';
 out+='function require(n){if(n==="node:crypto")return crypto;if(n==="node:path")return path;if(n==="docx")return docx;if(modules[n])return modules[n];throw Error("Unsupported module: "+n)}\n';
-for(const name of ['workspace-actions','chapter-structure','record-saving','paper-backup','research-chat','folder-upload','migrate-legacy','word','analysis-report','instrument-match']){
+for(const name of ['workspace-actions','chapter-structure','record-saving','paper-backup','research-chat-language','research-chat','folder-upload','migrate-legacy','word','analysis-report','instrument-match']){
  let source=fs.readFileSync(path.join(base,name+'.cjs'),'utf8');
  if(name==='word'||name==='analysis-report')source=source.replace(/const \{createRequire\}[\s\S]*?const \{Document/, 'const {Document').replace("=r('docx');","=docx;");
  out+='modules["./'+name+'.cjs"]=(()=>{const module={exports:{}};'+source+';return module.exports})();\n';

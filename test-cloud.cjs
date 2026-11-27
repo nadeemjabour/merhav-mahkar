@@ -1,6 +1,5 @@
 const fs=require('node:fs'),assert=require('node:assert/strict');
-const modules='C:/Users/PSH-Nadeem/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules';
-const JSZip=require(modules+'/jszip');
+const JSZip=require('./vendor/jszip.js');
 class Bucket{constructor(){this.map=new Map();this.rev=0}async get(k){const x=this.map.get(k);return x?{etag:x.etag,size:x.data.length,json:async()=>JSON.parse(x.data),arrayBuffer:async()=>x.data,body:new Response(x.data).body}:null}async head(k){const x=this.map.get(k);return x?{etag:x.etag,size:x.data.length}:null}async put(k,data,opt){const x=this.map.get(k);if(opt?.onlyIf?.etagMatches&&x?.etag!==opt.onlyIf.etagMatches)return null;if(opt?.onlyIf?.etagDoesNotMatch==='*'&&x)return null;const buf=typeof data==='string'?Buffer.from(data):Buffer.from(data);const etag=String(++this.rev);this.map.set(k,{data:buf,etag});return {etag}}async delete(k){this.map.delete(k)}}
 (async()=>{const worker=(await import('data:text/javascript;base64,'+fs.readFileSync('dist/server/index.js').toString('base64'))).default,env={BUCKET:new Bucket()};const request=async(path,b)=>{let r=await worker.fetch(new Request('https://example.test'+path,b===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}),env);if(r.status!==200)throw Error(await r.text());return r};
 let s=await (await request('/api/state')).json();assert.equal(s.papers.length,0);
@@ -16,5 +15,29 @@ const chat=await (await request('/api/chat',{paperId:'paper1',question:'מה ח�
 const ex=await (await request('/api/export-writing',{paperId:'paper1',format:'docx'})).json();assert(ex.file.size>1000);
 const backup=Buffer.from(await (await request('/api/backup')).arrayBuffer());const zip=await JSZip.loadAsync(backup);assert.equal(await zip.file('files/'+f.id).async('string'),'hello');
 let restored=await worker.fetch(new Request('https://example.test/api/restore',{method:'POST',headers:{'Content-Type':'application/zip'},body:backup}),env);assert.equal(restored.status,200,await restored.clone().text());assert.equal(await (await request('/api/file/'+f.id)).text(),'hello');
-console.log('PASS cloud: records, nine chapters, files, chat, Word export, streamed backup and restore');
+// A paper ZIP must restore its chat and recycled files without replacing the workspace chat.
+await request('/api/workspace',{action:'delete-file',fileId:f.id});
+await request('/api/chat',{question:'מה תמונת המצב הכללית?'});
+const scopedResponse=await request('/api/backup?paperId=paper1');
+const scopedBytes=await scopedResponse.arrayBuffer();
+const scopedZip=await JSZip.loadAsync(scopedBytes);
+const manifest=JSON.parse(await scopedZip.file('backup.json').async('string'));
+const snapshot=JSON.parse(await scopedZip.file('state.json').async('string'));
+assert.equal(manifest.scope,'paper');
+assert.equal(manifest.paperId,'paper1');
+assert.deepEqual(snapshot.conversations.map(c=>c.paperId),['paper1']);
+assert.ok(snapshot.deletedFiles.some(file=>file.id===f.id));
+assert.equal(await scopedZip.file('files/'+f.id).async('string'),'hello');
+const workspaceChat=await (await request('/api/chat',{question:'What should I work on next?',language:'en'})).json();
+assert.doesNotMatch(workspaceChat.messages.at(-1).text,/[\u0590-\u05ff]/);
+await request('/api/chat',{paperId:'paper1',question:'אילו מקורות יש?'});
+const restoredPaper=await worker.fetch(new Request('https://example.test/api/restore',{
+ method:'POST',headers:{'Content-Type':'application/zip'},body:scopedBytes
+}),env);
+assert.equal(restoredPaper.status,200,await restoredPaper.clone().text());
+assert.deepEqual((await (await request('/api/chat?paperId=paper1')).json()).messages,chat.messages);
+assert.deepEqual((await (await request('/api/chat')).json()).messages,workspaceChat.messages);
+await request('/api/workspace',{action:'restore-file',fileId:f.id});
+assert.equal(await (await request('/api/file/'+f.id)).text(),'hello');
+console.log('PASS cloud: records, chapters, file recovery, scoped conversations, Word export, full and paper ZIP restore');
 })().catch(e=>{console.error(e.message.slice(0,1200));process.exit(1)});
