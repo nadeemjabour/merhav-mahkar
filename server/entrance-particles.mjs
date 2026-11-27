@@ -12,14 +12,12 @@ export function mountEntranceTitle(screen, video) {
   function draw() {
     if(stopped) return;
     const time=video.currentTime||0;
-    const duration=Number.isFinite(video.duration)?video.duration:6;
-    const exit=reduced.matches?1:Math.min(1,Math.max(0,(duration-time)/.45));
     for(const [index,line] of lines.entries()) {
       const progress=reduced.matches?1:Math.min(1,Math.max(0,(time-.18-index*.38)/1.22));
       const eased=1-Math.pow(1-progress,3);
       const side=line.dataset.origin==='left'?-1:1;
       line.style.transform='translate3d('+(side*width*1.1*(1-eased))+'px,0,0)';
-      line.style.opacity=String(Math.min(1,progress*3)*exit);
+      line.style.opacity=String(Math.min(1,progress*3));
     }
   }
   function tick() {

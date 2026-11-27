@@ -12,90 +12,132 @@ export function entranceMarkup(mark, localized) {
 }
 
 export function startEntrance() {
-  const screen = document.querySelector('#entrance');
-  if (!screen) return;
-  const video = screen.querySelector('video');
-  const play = screen.querySelector('[data-play]');
-  const sound = screen.querySelector('[data-sound]');
-  const skip = screen.querySelector('[data-skip]');
-  const progress = screen.querySelector('.entrance-progress i');
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-  const stopTitle = mountEntranceTitle(screen, video);
-  let closed = false;
+  const screen=document.querySelector('#entrance');
+  if(!screen) return;
+  const video=screen.querySelector('video');
+  const play=screen.querySelector('[data-play]');
+  const sound=screen.querySelector('[data-sound]');
+  const skip=screen.querySelector('[data-skip]');
+  const progress=screen.querySelector('.entrance-progress i');
+  const login=document.querySelector('.shell');
+  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+  const stopTitle=mountEntranceTitle(screen,video);
+  let closed=false;
+  let ending=false;
   let playerTimer;
-  let attempt = 0;
-  let useStorage = !['localhost','127.0.0.1','[::1]'].includes(location.hostname);
+  let endingTimer;
+  let playbackFrame=0;
+  let attempt=0;
+  let useStorage=!['localhost','127.0.0.1','[::1]'].includes(location.hostname);
+
   function finish() {
-    if (closed) return;
-    closed = true;
+    if(closed) return;
+    closed=true;
     clearTimeout(playerTimer);
+    clearTimeout(endingTimer);
+    cancelAnimationFrame(playbackFrame);
     stopTitle();
     video.pause();
     video.removeAttribute('src');
     video.load();
     screen.remove();
     delete document.documentElement.dataset.entrance;
-    const heading = document.querySelector('.paper h1');
-    heading.tabIndex = -1;
+    login.inert=false;
+    const heading=document.querySelector('.paper h1');
+    heading.tabIndex=-1;
     heading.focus({preventScroll:true});
   }
+  function endFilm() {
+    if(closed||ending) return;
+    ending=true;
+    clearTimeout(playerTimer);
+    cancelAnimationFrame(playbackFrame);
+    stopTitle();
+    screen.dataset.ending='hold';
+    play.disabled=true;
+    sound.disabled=true;
+    endingTimer=setTimeout(()=>{
+      if(closed) return;
+      login.inert=true;
+      screen.inert=true;
+      document.documentElement.dataset.entrance='leaving';
+      endingTimer=setTimeout(finish,reduced.matches?180:1100);
+    },1600);
+  }
   function recover() {
-    if (closed) return;
-    if (!useStorage) return finish();
-    useStorage = false;
-    video.src = video.dataset.src;
+    if(closed||ending) return;
+    if(!useStorage) return finish();
+    useStorage=false;
+    video.src=video.dataset.src;
     playClip();
   }
   function waitForMedia() {
     clearTimeout(playerTimer);
-    playerTimer = setTimeout(recover,useStorage ? 4500 : 15000);
+    playerTimer=setTimeout(recover,useStorage?4500:15000);
   }
   function playClip() {
-    if (closed) return;
-    const current = ++attempt;
+    if(closed||ending) return;
+    const current=++attempt;
     if(!screen.dataset.started) { video.defaultMuted=false; video.muted=false; video.volume=1; }
-    if (!video.hasAttribute('src')) video.src = useStorage ? video.dataset.storage : video.dataset.src;
+    if(!video.hasAttribute('src')) video.src=useStorage?video.dataset.storage:video.dataset.src;
     waitForMedia();
-    video.play().catch(error => {
-      if (closed || current !== attempt) return;
-      if (error.name === 'NotAllowedError' || error.name === 'AbortError') {
+    video.play().catch(error=>{
+      if(closed||current!==attempt) return;
+      if(error.name==='NotAllowedError'||error.name==='AbortError') {
         clearTimeout(playerTimer);
-        if(error.name === 'NotAllowedError') screen.dataset.needsStart='true';
-      }
-      else recover();
+        if(error.name==='NotAllowedError') screen.dataset.needsStart='true';
+      } else recover();
     });
   }
+  function updatePlayback() {
+    if(closed||!Number.isFinite(video.duration)||video.duration<=0) return;
+    progress.style.transform='scaleX('+Math.min(1,video.currentTime/video.duration)+')';
+    const volume=Math.min(1,Math.max(0,video.duration-video.currentTime)/.8);
+    if(Math.abs(video.volume-volume)>.002) video.volume=volume;
+  }
+  function tickPlayback() {
+    updatePlayback();
+    if(!closed&&!video.paused&&!video.ended) playbackFrame=requestAnimationFrame(tickPlayback);
+  }
+
   video.defaultMuted=false;
   video.muted=false;
   video.volume=1;
   screen.dataset.muted='false';
   sound.title=sound.querySelector('span.when-audible').textContent;
   skip.addEventListener('click',finish);
-  play.addEventListener('click',() => video.paused ? playClip() : video.pause());
-  sound.addEventListener('click',() => {
+  play.addEventListener('click',()=>video.paused?playClip():video.pause());
+  sound.addEventListener('click',()=>{
     const muted=video.muted||video.volume===0;
     video.muted=!muted;
     if(muted) { video.volume=1; if(video.paused) playClip(); }
   });
-  video.addEventListener('volumechange',() => { const muted=video.muted||video.volume===0; screen.dataset.muted=String(muted);
-    sound.title = sound.querySelector(muted ? 'span.when-muted' : 'span.when-audible').textContent; });
-  video.addEventListener('playing',() => {
+  video.addEventListener('volumechange',()=>{
+    const muted=video.muted||video.volume===0;
+    screen.dataset.muted=String(muted);
+    sound.title=sound.querySelector(muted?'span.when-muted':'span.when-audible').textContent;
+  });
+  video.addEventListener('playing',()=>{
     clearTimeout(playerTimer);
-    screen.dataset.started = 'true';
+    cancelAnimationFrame(playbackFrame);
+    screen.dataset.started='true';
     screen.dataset.needsStart='false';
-    screen.dataset.playing = 'true';
+    screen.dataset.playing='true';
+    playbackFrame=requestAnimationFrame(tickPlayback);
   });
-  video.addEventListener('pause',() => {
+  video.addEventListener('pause',()=>{
     clearTimeout(playerTimer);
-    screen.dataset.playing = 'false';
+    cancelAnimationFrame(playbackFrame);
+    updatePlayback();
+    screen.dataset.playing='false';
   });
-  video.addEventListener('timeupdate',() => {
-    if (video.duration > 0) progress.style.transform = 'scaleX('+Math.min(1,video.currentTime/video.duration)+')';
-  });
-  video.addEventListener('ended',finish,{once:true});
-  video.addEventListener('waiting',() => { if (!video.paused) waitForMedia(); });
-  video.addEventListener('error',() => { if (video.error) recover(); });
-  screen.addEventListener('keydown',event=>{ if(event.key==='Escape')finish(); });
-  if (!reduced.matches) playClip();
+  video.addEventListener('timeupdate',updatePlayback);
+  video.addEventListener('seeked',updatePlayback);
+  video.addEventListener('loadedmetadata',updatePlayback);
+  video.addEventListener('ended',endFilm,{once:true});
+  video.addEventListener('waiting',()=>{ if(!video.paused) waitForMedia(); });
+  video.addEventListener('error',()=>{ if(video.error) recover(); });
+  screen.addEventListener('keydown',event=>{ if(event.key==='Escape') finish(); });
+  if(!reduced.matches) playClip();
   else screen.dataset.needsStart='true';
 }

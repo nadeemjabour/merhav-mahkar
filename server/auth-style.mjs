@@ -155,4 +155,16 @@ body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
 #entrance:not([data-started]) .when-started,#entrance[data-started] .when-new,#entrance:not([data-started]) [data-sound] { display:none; }
 #entrance [data-sound] { display:grid; place-items:center; padding:0; width:44px; border:1px solid #aabfda80; }
 #entrance [data-sound] > span { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+
+/* Keep the final frame readable, then dissolve into the sign-in page. */
+html[data-entrance] #entrance { opacity:1; transition:opacity 1.1s ease-in-out; }
+html[data-entrance="leaving"] .shell { display:block; animation:entrance-login-reveal 1.1s ease-in-out both; }
+html[data-entrance="leaving"] #entrance { position:fixed; inset:0; z-index:30; opacity:0; pointer-events:none; }
+#entrance .entrance-controls { transition:opacity .25s ease; }
+#entrance[data-ending] .entrance-controls { opacity:0; pointer-events:none; }
+@keyframes entrance-login-reveal { from { opacity:0; } to { opacity:1; } }
+@media (prefers-reduced-motion:reduce) {
+  html[data-entrance] #entrance { transition-duration:.18s; }
+  html[data-entrance="leaving"] .shell { animation-duration:.18s; }
+}
 `;
