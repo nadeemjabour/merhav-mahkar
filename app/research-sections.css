@@ -1,0 +1,147 @@
+/* Shared visual treatment for the research sections. */
+html body main :is(.registry-heading,.planning-header,.activity-hero,.evidence-library-heading) {
+  background:transparent;color:var(--workspace-ink);border:0;border-radius:0;box-shadow:none;
+  padding:.35rem .15rem;margin-block:0 1rem;
+}
+html body main :is(.registry-heading,.planning-header,.activity-hero,.evidence-library-heading) :is(h2,h3) {
+  margin:0;color:var(--workspace-ink);font-size:clamp(1.55rem,1.9vw,2.15rem);line-height:1.2;
+}
+html body main :is(.registry-heading,.planning-header,.activity-hero,.evidence-library-heading) :is(p,.muted,span) {
+  color:var(--workspace-muted);line-height:1.5;
+}
+html body main :is(.registry-heading,.planning-header,.activity-hero,.evidence-library-heading) p {margin:.4rem 0 0}
+html body main :is(.registry-heading,.planning-header,.activity-hero) .row {margin-top:.8rem;gap:.5rem}
+html body main :is(.registry-heading,.planning-header,.activity-hero,.evidence-library-heading) button {
+  min-height:42px;border-radius:10px;
+}
+html body main :is(.registry-heading,.planning-header,.activity-hero) + :is(.panel,.grid,.calendar-toolbar,.instrument-match-panel) {margin-block-start:.5rem}
+html body main :is(.registry-heading,.planning-header) ~ .panel.scroll {
+  padding:0;overflow:auto;background:var(--workspace-surface);border:1px solid var(--workspace-border);border-radius:16px;
+}
+html body main :is(.registry-heading,.planning-header) ~ .panel.scroll table {width:100%;margin:0;border-collapse:collapse;background:transparent;box-shadow:none}
+html body main :is(.registry-heading,.planning-header) ~ .panel.scroll :is(th,td) {
+  padding:.8rem 1rem;text-align:start;border-block-end:1px solid var(--workspace-border);background:transparent;color:var(--workspace-ink);
+}
+html body main :is(.registry-heading,.planning-header) ~ .panel.scroll th {
+  background:var(--workspace-low);color:var(--workspace-muted);font-size:.8rem;white-space:nowrap;
+}
+html body main :is(.registry-heading,.planning-header) ~ .panel.scroll :is(p,.content,small) {color:var(--workspace-muted);line-height:1.5}
+html body main :is(.registry-heading,.planning-header) ~ .panel.scroll :is(button,a) {min-height:40px;border-radius:9px}
+html body main .planning-header {display:grid;gap:.5rem}
+html body main .planning-header + .grid {gap:.8rem}
+html body main .planning-header + .grid .card {
+  background:var(--workspace-surface);border:1px solid var(--workspace-border);border-radius:16px;padding:1.1rem;box-shadow:var(--orbital-shadow);
+}
+html body main .instrument-match-panel {
+  padding:1rem;margin:0 0 1rem;background:var(--workspace-surface);border:1px solid var(--workspace-border);border-radius:16px;
+}
+html body main .instrument-match-head {background:transparent;border:0;box-shadow:none;padding:.15rem;margin-bottom:.8rem}
+html body main .instrument-match-head :is(h3,p) {color:var(--workspace-ink)}
+html body main .instrument-match-form :is(label,textarea) {font-size:.88rem;line-height:1.45}
+html body main .instrument-match-form textarea {
+  min-height:5rem;color:var(--workspace-ink);background:var(--workspace-low);border-color:var(--workspace-border);border-radius:10px;
+}
+html body main .calendar-toolbar {gap:.45rem;padding:0 0 .4rem}
+html body main .calendar-toolbar :is(button,input,select) {min-height:42px;border-radius:10px}
+html body main .calendar-grid {gap:.45rem}
+html body main .calendar-day {background:var(--workspace-surface);border:1px solid var(--workspace-border);border-radius:12px}
+html body main .calendar-day.today {border:2px solid var(--workspace-accent-deep)}
+html body main .calendar-day button {min-height:40px}
+html body main .calendar-day .calendar-event {border-color:var(--workspace-border)}
+html body main .evidence-library {padding:0;background:transparent;border:0;box-shadow:none}
+html body main .evidence-library-heading {display:flex;gap:1rem;align-items:center;justify-content:space-between}
+html body main .evidence-columns {gap:.8rem}
+html body main :is(.evidence-list,.evidence-preview) {
+  background:var(--workspace-surface);border:1px solid var(--workspace-border);border-radius:16px;overflow:hidden;
+}
+html body main .evidence-list button {border-radius:12px}
+html body main .evidence-filters {display:flex;gap:.6rem;align-items:end;flex-wrap:wrap;padding:0;background:transparent;border:0;box-shadow:none}
+html body main .evidence-filters label {flex:1 1 11rem}
+html body main .evidence-filters :is(input,select) {width:100%;min-height:44px;background:var(--workspace-surface);color:var(--workspace-ink)}
+html body:has(.gantt) main .workspace-top {position:static;background:transparent;box-shadow:none;border:0}
+html body:has(.gantt) main .workspace-top .dashboard-hero {
+  background:transparent;border:0;box-shadow:none;padding:.35rem .15rem;
+}
+html body:has(.gantt) main .workspace-top .article-picker {
+  background:var(--workspace-surface);border:1px solid var(--workspace-border);border-radius:14px;
+}
+html body:has(.gantt) main .workspace-top :is(.article-picker,.sectionhead) :is(select,button) {min-height:42px;border-radius:10px}
+html body main .gantt {background:var(--workspace-surface);color:var(--workspace-ink)}
+html body main .gantt :is(.gline,.glabel,.track) {border-color:var(--workspace-border)}
+html body main .gantt .bar {border-radius:999px;min-height:28px}
+html body main .statistics-workspace {gap:.9rem}
+html body main .statistics-workspace .statistics-heading {
+  background:var(--workspace-surface);border:1px solid var(--workspace-border);border-radius:16px;box-shadow:none;
+}
+html body main .statistics-workspace .analysis-panel {
+  background:var(--workspace-surface);border:1px solid var(--workspace-border);border-radius:16px;box-shadow:none;
+}
+html body main .statistics-workspace :is(.analysis-load-grid>label:not(.analysis-file-drop),.analysis-file-drop,.analysis-existing-picker) {
+  background:var(--workspace-low)!important;color:var(--workspace-ink)!important;border-color:var(--workspace-border)!important;border-radius:12px!important;
+}
+html body main .statistics-workspace :is(.analysis-field select,.analysis-field input,.analysis-field textarea) {
+  color:var(--workspace-ink);background:var(--workspace-surface);border-color:var(--workspace-border);border-radius:10px;
+}
+html body main .statistics-workspace :is(button,select,input) {min-height:42px}
+html body main :is(.registry-heading,.planning-header,.activity-hero,.evidence-library,.statistics-workspace) :is(button,input,select,textarea):focus-visible {
+  outline:3px solid var(--workspace-accent-deep);outline-offset:2px;
+}
+@media(max-width:850px) {
+  html body main .instrument-match-form {grid-template-columns:1fr}
+  html body main .calendar-grid {grid-template-columns:repeat(7,minmax(7rem,1fr));overflow:auto}
+  html body main .evidence-columns {grid-template-columns:minmax(0,1fr)}
+}
+/* Registry cards keep each original field, source link, and editing action. */
+html body main .registry-heading ~ .panel.scroll:has(.research-registry-cards) {overflow:visible;padding:0;border:0;background:transparent;box-shadow:none}
+html body main .research-registry-cards,html body main .research-registry-cards tbody {display:block}
+html body main .research-registry-cards thead {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+html body main .research-registry-cards tbody {display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,23rem),1fr));gap:.8rem}
+html body main .research-registry-cards tr {display:flex;flex-direction:column;gap:.65rem;padding:1rem;border:1px solid var(--workspace-border);border-radius:16px;background:var(--workspace-surface);box-shadow:var(--orbital-shadow)}
+html body main .registry-heading ~ .panel.scroll .research-registry-cards td {display:block;padding:0;min-width:0;border:0;overflow-wrap:anywhere}
+.research-registry-cards td:first-child b {font-size:1.04rem;color:var(--workspace-ink)}
+.research-registry-cards td:not(:first-child):not(:last-child)::before {content:attr(data-label);display:block;margin-bottom:.25rem;color:var(--workspace-muted);font-size:.75rem;font-weight:700}
+.research-registry-cards td:last-child {display:flex!important;gap:.5rem;flex-wrap:wrap;margin-block-start:auto}
+html body main .statistics-workspace .analysis-jumpbar {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.45rem;padding:0}
+html body main .statistics-workspace .analysis-jumpbar button {min-width:0;min-height:44px;border-color:var(--workspace-border);background:var(--workspace-low);color:var(--workspace-ink);border-radius:10px}
+.activity-timeline-workspace {display:grid;gap:1rem;color:var(--workspace-ink)}
+html body main .activity-timeline-header {display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.3rem .15rem;background:transparent;border:0;box-shadow:none}
+.activity-timeline-header h2 {margin:0;font-size:clamp(1.55rem,1.9vw,2.15rem);color:var(--workspace-ink)}
+.activity-timeline-header p {margin:.35rem 0 0;color:var(--workspace-muted)}
+.activity-timeline-header button {min-height:44px}
+.activity-timeline-controls {display:flex;flex-wrap:wrap;gap:.6rem;align-items:center}
+.activity-timeline-controls select {min-height:44px;max-width:100%;border-radius:10px}
+.activity-view-switch {display:flex;padding:3px;background:var(--workspace-low);border-radius:10px}
+html body .activity-view-switch button {min-height:38px;padding:.4rem .8rem;border:0;background:transparent;color:var(--workspace-muted);border-radius:8px}
+html body .activity-view-switch button[aria-pressed=true] {background:var(--workspace-surface);color:var(--workspace-ink)}
+.activity-timeline-list {padding:.25rem 1rem;border:1px solid var(--workspace-border);border-radius:16px;background:var(--workspace-surface)}
+.activity-timeline-item {display:flex;align-items:flex-start;gap:.85rem;padding:1rem 0;border-block-end:1px solid var(--workspace-border)}
+.activity-timeline-item:last-child {border:0}
+.activity-timeline-icon {display:grid;place-items:center;flex:none;width:2.5rem;height:2.5rem;border-radius:50%;background:var(--workspace-tint);color:var(--workspace-accent-deep)}
+.activity-timeline-icon svg {width:1.2rem;height:1.2rem}
+.activity-timeline-item>div {min-width:0;flex:1}
+.activity-timeline-item small,.activity-timeline-item span:not(.activity-timeline-icon) {color:var(--workspace-muted);font-size:.85rem}
+.activity-timeline-item p {margin:.3rem 0;font-weight:650;overflow-wrap:anywhere}
+.activity-timeline-item button,.activity-back {min-height:42px;border-radius:10px}
+.activity-timeline-empty {padding:1.5rem;color:var(--workspace-muted)}
+@media(max-width:700px) {
+ html body main .statistics-workspace .analysis-jumpbar {grid-template-columns:repeat(2,minmax(0,1fr))}
+ .activity-timeline-header {align-items:flex-start!important}
+ .activity-timeline-item {flex-wrap:wrap}
+ .activity-timeline-item>button {margin-inline-start:3.3rem}
+}
+html body main .statistics-workspace .analysis-stage-nav {
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.45rem;
+  padding:.4rem;background:var(--workspace-low);border:1px solid var(--workspace-border);border-radius:14px;
+}
+html body main .statistics-workspace .analysis-stage-nav button {
+  min-width:0;min-height:44px;padding:.5rem;color:var(--workspace-ink);border-radius:9px;
+}
+@media(max-width:700px) {
+  html body main .statistics-workspace .analysis-stage-nav {grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+html body main .instrument-registry-search {
+  display:block;width:min(100%,28rem);min-height:44px;margin:0 0 .8rem;padding:.65rem .8rem;
+  color:var(--workspace-ink);background:var(--workspace-surface);border:1px solid var(--workspace-border);border-radius:10px;
+}
+.research-registry-cards tr[hidden],.instrument-registry-empty[hidden] {display:none!important}
+.instrument-registry-empty {padding:1rem;color:var(--workspace-muted)}
