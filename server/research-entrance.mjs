@@ -2,7 +2,7 @@ export function entranceMarkup(mark, localized) {
   return `<section id="entrance" aria-labelledby="entrance-name">
   <div class="entrance-bar"><div class="brand" id="entrance-name">${mark}${localized('brand')}</div><button type="button" data-skip>${localized('skipFilm')}</button></div>
   <div class="entrance-stage"><svg width="0" height="0" class="entrance-grade" aria-hidden="true"><defs><filter id="entrance-palette" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="table" tableValues=".125 .259 .443 .667 .890 .965 1"/><feFuncG type="table" tableValues=".173 .329 .522 .749 .584 .694 .945"/><feFuncB type="table" tableValues=".259 .447 .659 .855 .686 .808 .969"/></feComponentTransfer></filter></defs></svg>
-    <div class="entrance-film"><video muted playsinline preload="none" data-src="/media/research-space-loop.mp4" data-storage="https://qzqclvzvddudbkdqoihg.supabase.co/storage/v1/object/public/videos/hero/research-space-loop.mp4" poster="/media/research-space-poster.webp" aria-hidden="true"></video><div class="entrance-title" aria-label="אטלס המחקר, Research Atlas"><span dir="rtl">אטלס המחקר</span><span dir="ltr">Research Atlas</span></div><canvas class="entrance-particles" aria-hidden="true"></canvas></div>
+    <div class="entrance-film"><video playsinline preload="none" data-src="/media/research-space-loop.mp4" data-storage="https://qzqclvzvddudbkdqoihg.supabase.co/storage/v1/object/public/videos/hero/research-space-loop.mp4" poster="/media/research-space-poster.webp" aria-hidden="true"></video><div class="entrance-title" aria-label="אטלס המחקר, Research Atlas"><span dir="rtl" data-origin="right">אטלס המחקר</span><span dir="ltr" data-origin="left">Research Atlas</span></div></div>
   </div>
   <div class="entrance-console"><div class="entrance-progress" aria-hidden="true"><i></i></div><div class="entrance-controls">
     <button type="button" data-play><span class="play-icon" aria-hidden="true"></span><span class="when-paused"><span class="when-new">${localized('playFilm')}</span><span class="when-started">${localized('resumeFilm')}</span></span><span class="when-playing">${localized('pauseFilm')}</span></button>
@@ -53,25 +53,36 @@ export function startEntrance() {
   function playClip() {
     if (closed) return;
     const current = ++attempt;
+    if(!screen.dataset.started) { video.defaultMuted=false; video.muted=false; video.volume=1; }
     if (!video.hasAttribute('src')) video.src = useStorage ? video.dataset.storage : video.dataset.src;
     waitForMedia();
     video.play().catch(error => {
       if (closed || current !== attempt) return;
-      if (error.name === 'NotAllowedError' || error.name === 'AbortError') clearTimeout(playerTimer);
+      if (error.name === 'NotAllowedError' || error.name === 'AbortError') {
+        clearTimeout(playerTimer);
+        if(error.name === 'NotAllowedError') screen.dataset.needsStart='true';
+      }
       else recover();
     });
   }
-  video.muted = true;
-  screen.dataset.muted = 'true';
-  sound.title = sound.querySelector('span.when-muted').textContent;
+  video.defaultMuted=false;
+  video.muted=false;
+  video.volume=1;
+  screen.dataset.muted='false';
+  sound.title=sound.querySelector('span.when-audible').textContent;
   skip.addEventListener('click',finish);
   play.addEventListener('click',() => video.paused ? playClip() : video.pause());
-  sound.addEventListener('click',() => { video.muted = !video.muted; });
-  video.addEventListener('volumechange',() => { screen.dataset.muted = String(video.muted);
-    sound.title = sound.querySelector(video.muted ? 'span.when-muted' : 'span.when-audible').textContent; });
+  sound.addEventListener('click',() => {
+    const muted=video.muted||video.volume===0;
+    video.muted=!muted;
+    if(muted) { video.volume=1; if(video.paused) playClip(); }
+  });
+  video.addEventListener('volumechange',() => { const muted=video.muted||video.volume===0; screen.dataset.muted=String(muted);
+    sound.title = sound.querySelector(muted ? 'span.when-muted' : 'span.when-audible').textContent; });
   video.addEventListener('playing',() => {
     clearTimeout(playerTimer);
     screen.dataset.started = 'true';
+    screen.dataset.needsStart='false';
     screen.dataset.playing = 'true';
   });
   video.addEventListener('pause',() => {
@@ -86,4 +97,5 @@ export function startEntrance() {
   video.addEventListener('error',() => { if (video.error) recover(); });
   screen.addEventListener('keydown',event=>{ if(event.key==='Escape')finish(); });
   if (!reduced.matches) playClip();
+  else screen.dataset.needsStart='true';
 }
