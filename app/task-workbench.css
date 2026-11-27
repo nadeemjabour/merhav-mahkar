@@ -1,0 +1,59 @@
+/* Task list and board share the workspace color and type preferences. */
+.task-workbench {display:grid;gap:1rem;color:var(--workspace-ink);min-width:0}
+.task-workbench * {box-sizing:border-box}
+.task-workbench-head {display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.3rem .15rem}
+html body .task-workbench-head h2 {margin:0;font-size:clamp(1.7rem,2vw,2.25rem);line-height:1.15;color:var(--workspace-ink)}
+.task-workbench-head p {margin:.35rem 0 0;color:var(--workspace-muted);line-height:1.45}
+html body .task-workbench .task-create {min-height:44px;padding:.65rem 1rem;border-radius:12px;white-space:nowrap}
+.task-metrics {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.7rem}
+html body .task-workbench .task-stat {display:flex;align-items:center;gap:.85rem;min-height:94px;padding:1rem;text-align:start;color:var(--workspace-ink);background:var(--workspace-low);border:1px solid transparent;border-radius:16px;box-shadow:none}
+html body .task-workbench .task-stat:hover,html body .task-workbench .task-stat[aria-pressed=true] {border-color:var(--workspace-accent-deep)}
+.task-stat-icon {display:grid;place-items:center;width:2.7rem;height:2.7rem;border-radius:12px;flex:none;color:var(--workspace-accent-deep);background:var(--workspace-surface)}
+.task-stat-icon svg {width:1.35rem;height:1.35rem}
+.task-stat small,.task-stat strong {display:block;line-height:1.35}
+.task-stat small {font-size:.85rem;color:var(--workspace-muted)}
+.task-stat strong {font-size:1.45rem;font-weight:750;color:var(--workspace-ink)}
+html body .task-workbench .task-stat.high {background:var(--workspace-tint)}
+.task-filter-bar {display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;min-width:0}
+.task-filter-bar label {min-width:0;display:block;flex:0 1 auto}
+.task-filter-bar .task-search {flex:1 1 13rem}
+html body .task-workbench .task-filter-bar :is(input,select) {width:100%;min-height:44px;padding:.55rem .7rem;border:1px solid var(--workspace-border);border-radius:10px;background:var(--workspace-surface);color:var(--workspace-ink);font-size:.88rem}
+.task-view-switch {display:flex;padding:3px;background:var(--workspace-low);border-radius:10px}
+html body .task-workbench .task-view-switch button {min-height:38px;padding:.4rem .75rem;border:0;background:transparent;color:var(--workspace-muted);border-radius:8px}
+html body .task-workbench .task-view-switch button[aria-pressed=true] {background:var(--workspace-surface);color:var(--workspace-ink);box-shadow:0 2px 5px #101f331c}
+.task-results {min-width:0;overflow:hidden;border:1px solid var(--workspace-border);border-radius:17px;background:var(--workspace-surface);box-shadow:var(--orbital-shadow)}
+.task-results-title {display:flex;align-items:center;gap:.55rem;min-height:60px;padding:.7rem 1rem}
+.task-results-title span {padding:.1rem .5rem;border-radius:20px;background:var(--workspace-low);font-size:.8rem;color:var(--workspace-muted)}
+html body .task-workbench .task-results-title button {margin-inline-start:auto;padding:.4rem .65rem;min-height:40px;background:transparent;border:0;color:var(--workspace-accent-deep)}
+.task-table-scroll {overflow:auto}
+html body .task-workbench .task-table {width:100%;border-collapse:collapse;margin:0;table-layout:auto;background:transparent;box-shadow:none}
+html body .task-workbench .task-table :is(th,td) {padding:.72rem 1rem;border:0;border-block-start:1px solid var(--workspace-border);text-align:start;color:var(--workspace-ink);vertical-align:middle;background:transparent}
+html body .task-workbench .task-table th {font-size:.8rem;color:var(--workspace-muted);background:var(--workspace-low);white-space:nowrap}
+.task-table td:first-child {min-width:14rem;max-width:28rem}
+.task-table td small {display:block;color:var(--workspace-muted);font-size:.8rem;margin-top:.2rem}
+html body .task-workbench .task-title-link {display:block;width:auto;padding:0;border:0;background:none;text-align:start;color:var(--workspace-ink);font-weight:700;line-height:1.4}
+html body .task-workbench .task-title-link:hover {color:var(--workspace-accent-deep);text-decoration:underline}
+.task-priority {display:inline-block;border-radius:20px;padding:.22rem .55rem;background:var(--workspace-low);white-space:nowrap;font-size:.8rem}
+.task-priority.is-high {background:var(--workspace-tint);color:var(--workspace-accent-deep)}
+.task-overdue {color:var(--workspace-accent-deep)!important;font-weight:700}
+html body .task-workbench .task-table :is(select,button:not(.task-title-link)) {min-height:40px;max-width:13rem;border:1px solid var(--workspace-border);border-radius:9px;background:var(--workspace-surface);color:var(--workspace-ink);padding:.35rem .55rem}
+.task-empty {padding:2rem 1rem;text-align:center;color:var(--workspace-muted)}
+.task-board {padding:1rem;overflow:auto}
+.task-board .column {min-width:14rem;background:var(--workspace-low);border-radius:14px}
+.task-sr {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.task-workbench :is(button,input,select):focus-visible {outline:3px solid var(--workspace-accent-deep);outline-offset:2px}
+@media (prefers-reduced-motion:no-preference) {.task-metrics {animation:task-arrive .25s ease-out both}@keyframes task-arrive {from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}}
+@media(max-width:850px) {.task-metrics {grid-template-columns:repeat(2,minmax(0,1fr))}.task-filter-bar .task-search {flex-basis:100%}}
+@media(max-width:540px) {.task-workbench-head {align-items:flex-start}.task-workbench-head p {font-size:.87rem}.task-metrics {gap:.45rem}html body .task-workbench .task-stat {min-height:76px;padding:.7rem;gap:.5rem}.task-stat-icon {width:2rem;height:2rem}.task-stat strong {font-size:1.2rem}.task-filter-bar label:not(.task-search) {flex:1 1 43%}.task-view-switch {width:100%}.task-view-switch button {flex:1}}
+html body main .task-workbench .task-workbench-head {background:transparent;border:0;border-radius:0;box-shadow:none;padding:.3rem .15rem}
+@media(max-width:640px) {
+  html body .task-workbench .task-table,html body .task-workbench .task-table tbody {display:block}
+  html body .task-workbench .task-table thead {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+  html body .task-workbench .task-table tr {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.65rem 1rem;padding:1rem;border-block-start:1px solid var(--workspace-border)}
+  html body .task-workbench .task-table td {display:block;border:0;padding:0;min-width:0;max-width:none;overflow-wrap:anywhere}
+  html body .task-workbench .task-table td:first-child {grid-column:1/-1}
+  .task-table td:not(:first-child)::before {content:attr(data-label);display:block;color:var(--workspace-muted);font-size:.76rem;margin-bottom:.2rem}
+}
+/* Keep language, theme and account controls available on the task screen. */
+html body.task-page main>header {display:flex}
+html body.task-page .task-workbench-head h2 {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}

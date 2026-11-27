@@ -1,3 +1,4 @@
+import { mountEntranceTitle } from './entrance-particles.mjs';
 import { entranceMarkup, startEntrance } from './research-entrance.mjs';
 import { fieldDiagram } from './auth-art.mjs';
 import { authStyle } from './auth-style.mjs';
@@ -209,7 +210,8 @@ ${showEntrance ? "document.documentElement.dataset.entrance='ready';" : ''}</scr
   }
   document.querySelector('#logout')?.addEventListener('click', () => action('/auth/logout'));
   refreshLabels();
-  ${showEntrance ? `(${startEntrance.toString()})();` : ''}
+  ${showEntrance ? `${mountEntranceTitle.toString()}
+(${startEntrance.toString()})();` : ''}
 })();
 </script></body></html>`;
 }
