@@ -167,4 +167,21 @@ html[data-entrance="leaving"] #entrance { position:fixed; inset:0; z-index:30; o
   html[data-entrance] #entrance { transition-duration:.18s; }
   html[data-entrance="leaving"] .shell { animation-duration:.18s; }
 }
+
+.password-field { display:grid; gap:.38rem; }
+.password-input { position:relative; display:block; width:100%; }
+.password-input input { padding-right:3.3rem; }
+.password-input button {
+  position:absolute; top:2px; right:2px; display:grid; place-items:center; width:44px; height:44px;
+  margin:0; padding:0; border:0; border-radius:12px; color:var(--muted); background:transparent;
+}
+.password-input button:hover { color:var(--primary); background:var(--notice); }
+.password-input button svg { width:21px; height:21px; }
+.password-input button:not([aria-pressed="true"]) .password-slash { display:none; }
+.social-login { margin-top:1.25rem; }
+.login-separator { display:flex; align-items:center; gap:.8rem; margin-bottom:.9rem; color:var(--muted); font-size:.9rem; }
+.login-separator::before,.login-separator::after { content:""; height:1px; flex:1; background:var(--edge); }
+.action.google-action { width:100%; background:var(--surface); color:var(--ink); border-color:var(--edge); box-shadow:none; }
+.action.google-action:hover { background:var(--notice); filter:none; }
+.google-action svg { width:21px; height:21px; flex:none; }
 `;

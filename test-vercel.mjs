@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHandler} from './api/workspace.mjs';
@@ -143,4 +144,142 @@ test('an unapproved account cannot access the local data', async () => {
  assert.equal((await handle(req('/api/state',{headers:{cookie:'rw-access=valid'}}))).status,403);
  const root=await handle(req('/',{headers:{cookie:'rw-access=valid'}}));
  assert.match(await root.text(),/pending@example.com/);
+});
+
+const googleStart=handle=>handle(req('/auth/google',{method:'POST',headers:{Origin:'https://workspace.example'},body:'{}'}));
+const beginGoogle=async handle=>{
+ const response=await googleStart(handle);
+ assert.equal(response.status,200);
+ const redirect=new URL((await response.json()).redirect);
+ const callback=new URL(redirect.searchParams.get('redirect_to'));
+ const flow=callback.searchParams.get('flow');
+ const cookie=response.headers.getSetCookie()[0];
+ return {response,redirect,callback,flow,cookie,pair:cookie.split(';')[0]};
+};
+
+test('Google start is same-origin POST and reports a disabled provider without session cookies',async()=>{
+ let lookups=0;
+ const handle=createHandler({env,fetcher:async url=>{
+  assert.equal(url,env.SUPABASE_URL+'/auth/v1/settings');
+  lookups++;
+  return Response.json({external:{google:false}});
+ }});
+ assert.equal((await handle(req('/auth/google'))).status,405);
+ assert.equal((await handle(req('/auth/google',{method:'POST',headers:{Origin:'https://other.example'},body:'{}'}))).status,403);
+ assert.equal(lookups,0);
+ const response=await googleStart(handle);
+ assert.equal(response.status,409);
+ assert.match((await response.json()).error,/Google/);
+ assert.deepEqual(response.headers.getSetCookie(),[]);
+ assert.equal(lookups,1);
+});
+
+test('Google creates a separate PKCE verifier for each browser flow and only returns the challenge',async()=>{
+ const handle=createHandler({env,fetcher:async()=>Response.json({external:{google:true}})});
+ const first=await beginGoogle(handle);
+ const second=await beginGoogle(handle);
+ assert.notEqual(first.flow,second.flow);
+ assert.notEqual(first.pair,second.pair);
+ assert.equal(first.redirect.origin,env.SUPABASE_URL);
+ assert.equal(first.redirect.pathname,'/auth/v1/authorize');
+ assert.equal(first.redirect.searchParams.get('provider'),'google');
+ assert.equal(first.redirect.searchParams.get('code_challenge_method'),'s256');
+ assert.equal(first.callback.origin,'https://workspace.example');
+ assert.equal(first.callback.pathname,'/auth/callback');
+ assert.match(first.flow,/^[a-f0-9]{32}$/);
+ assert.match(first.cookie,/Path=\/auth\/callback; HttpOnly; SameSite=Lax; Secure; Max-Age=600$/);
+ const verifier=first.pair.split('=')[1];
+ assert.match(verifier,/^[A-Za-z0-9_-]{43}$/);
+ assert.equal(first.redirect.searchParams.get('code_challenge'),createHash('sha256').update(verifier).digest('base64url'));
+ assert.equal(first.redirect.searchParams.has('code_verifier'),false);
+ assert.equal(first.redirect.href.includes(verifier),false);
+});
+
+test('Google callback exchanges the bound code server-side, consumes the flow and establishes secure cookies',async()=>{
+ let exchange;
+ const handle=createHandler({env,fetcher:async(url,options)=>{
+  if(url.endsWith('/settings'))return Response.json({external:{google:true}});
+  assert.equal(url,env.SUPABASE_URL+'/auth/v1/token?grant_type=pkce');
+  assert.equal(options.method,'POST');
+  assert.equal(options.headers.apikey,env.SUPABASE_PUBLISHABLE_KEY);
+  exchange=JSON.parse(options.body);
+  return Response.json({access_token:'google-access',refresh_token:'google-refresh',expires_in:3600});
+ }});
+ const flow=await beginGoogle(handle);
+ const response=await handle(req('/auth/callback?flow='+flow.flow+'&code=one-time-code',{headers:{cookie:flow.pair}}));
+ assert.deepEqual(exchange,{auth_code:'one-time-code',code_verifier:flow.pair.split('=')[1]});
+ assert.equal(response.status,303);
+ assert.equal(response.headers.get('location'),'/');
+ assert.equal(await response.text(),'');
+ const cookies=response.headers.getSetCookie();
+ assert.equal(cookies.length,3);
+ assert.ok(cookies.some(c=>c.startsWith('rw-oauth-'+flow.flow+'=;')&&c.endsWith('Max-Age=0')));
+ assert.ok(cookies.some(c=>c.startsWith('rw-access=google-access;')));
+ assert.ok(cookies.some(c=>c.startsWith('rw-refresh=google-refresh;')));
+ for(const cookie of cookies)assert.match(cookie,/HttpOnly; SameSite=Lax; Secure/);
+});
+
+test('Google callbacks reject a missing verifier, an unrelated flow or a malformed callback before token exchange',async()=>{
+ const handle=createHandler({env,fetcher:()=>{throw Error('The callback must not exchange a code');}});
+ const flow='a'.repeat(32),other='b'.repeat(32),verifier='x'.repeat(43);
+ for(const [path,cookie] of [
+  ['/auth/callback?flow='+flow+'&code=test',''],
+  ['/auth/callback?flow='+flow+'&code=test','rw-oauth-'+other+'='+verifier],
+  ['/auth/callback?flow='+flow,'rw-oauth-'+flow+'='+verifier],
+  ['/auth/callback?flow=invalid&code=test','rw-oauth-'+flow+'='+verifier],
+  ['/auth/callback?flow='+flow+'&code=test','rw-oauth-'+flow+'=short']
+ ]){
+  const response=await handle(req(path,{headers:{cookie}}));
+  assert.equal(response.status,303);
+  assert.equal(response.headers.get('location'),'/auth/login?auth=google-failed');
+  assert.ok(response.headers.getSetCookie().every(c=>!c.startsWith('rw-access=')&&!c.startsWith('rw-refresh=')));
+ }
+ assert.equal((await handle(req('/auth/callback',{method:'POST',headers:{Origin:'https://workspace.example'},body:'{}'}))).status,405);
+});
+
+test('Google cancellation and failed code exchange return to a localized, retryable login',async()=>{
+ for(const failure of ['cancelled','invalid-code','network']){
+  const handle=createHandler({env,fetcher:async url=>{
+   if(url.endsWith('/settings'))return Response.json({external:{google:true}});
+   if(failure==='network')throw Error('Fixture network failure');
+   return Response.json({error:'expired code'},{status:400});
+  }});
+  const flow=await beginGoogle(handle);
+  const query=failure==='cancelled'?'error=access_denied':'code=expired';
+  const response=await handle(req('/auth/callback?flow='+flow.flow+'&'+query,{headers:{cookie:flow.pair}}));
+  const location='/auth/login?auth='+(failure==='cancelled'?'google-cancelled':'google-failed');
+  assert.equal(response.status,303);
+  assert.equal(response.headers.get('location'),location);
+  assert.equal(response.headers.getSetCookie().length,1);
+  assert.match(response.headers.getSetCookie()[0],/Max-Age=0$/);
+  const page=await handle(req(location));
+  const html=await page.text();
+  assert.match(html,/id="google-signin"/);
+  assert.doesNotMatch(html,/id="entrance"/);
+  assert.ok(html.includes('let messageKey = "'+(failure==='cancelled'?'googleCancelled':'googleFailed')+'";'));
+ }
+ const handle=createHandler({env});
+ for(const outcome of ['__proto__','toString','<script>']){
+  const html=await (await handle(req('/auth/login?auth='+encodeURIComponent(outcome)))).text();
+  assert.ok(html.includes('let messageKey = "";'));
+ }
+});
+
+test('a Google-authenticated account still needs workspace membership before any research is loaded',async()=>{
+ let workerCalled=false;
+ const handle=createHandler({env,fetcher:async url=>{
+  if(url.endsWith('/settings'))return Response.json({external:{google:true}});
+  if(url.includes('grant_type=pkce'))return Response.json({access_token:'unapproved-google',refresh_token:'fixture-refresh'});
+  if(url.endsWith('/user'))return Response.json({id:'google-user',email:'pending@example.com',app_metadata:{provider:'google'}});
+  if(url.includes('/rpc/'))return new Response(null,{status:204});
+  return Response.json([]);
+ },loadWorker:()=>{workerCalled=true;throw Error('Private research must stay protected');}});
+ const flow=await beginGoogle(handle);
+ const callback=await handle(req('/auth/callback?flow='+flow.flow+'&code=valid',{headers:{cookie:flow.pair}}));
+ const session=callback.headers.getSetCookie().find(c=>c.startsWith('rw-access=')).split(';')[0];
+ const data=await handle(req('/api/state',{headers:{cookie:session}}));
+ assert.equal(data.status,403);
+ assert.equal(workerCalled,false);
+ const home=await handle(req('/',{headers:{cookie:session}}));
+ assert.match(await home.text(),/pending@example.com/);
 });

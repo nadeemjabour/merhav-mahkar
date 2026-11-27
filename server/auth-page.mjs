@@ -9,6 +9,10 @@ export const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => 
 
 const copy = {
   he: {
+    google:'כניסה עם Google', or:'או', showPassword:'הצגת הסיסמה', hidePassword:'הסתרת הסיסמה',
+    googleUnavailable:'החיבור ל־Google ממתין להפעלה בידי בעל המרחב.',
+    googleFailed:'הכניסה עם Google לא הושלמה. נסו שוב.',
+    googleCancelled:'הכניסה עם Google בוטלה. אפשר לנסות שוב.',
     skipFilm:'דילוג לכניסה', playFilm:'ניגון עם צליל', resumeFilm:'המשך ניגון', pauseFilm:'השהיה', muteFilm:'השתקה', unmuteFilm:'הפעלת צליל',
     title: 'כניסה למרחב המחקר', brand: 'מרחב המחקר', signIn: 'כניסה', signUp: 'יצירת חשבון',
     heading: 'כניסה למרחב', intro: 'התחברו עם כתובת הדוא״ל שאושרה למרחב המחקר שלכם.',
@@ -29,6 +33,10 @@ const copy = {
     retry: 'הפעולה לא הושלמה. נסו שוב.'
   },
   en: {
+    google:'Continue with Google', or:'or', showPassword:'Show password', hidePassword:'Hide password',
+    googleUnavailable:'Google sign-in is waiting for the workspace owner to enable it.',
+    googleFailed:'Google sign-in could not be completed. Please try again.',
+    googleCancelled:'Google sign-in was cancelled. You can try again.',
     skipFilm:'Skip to sign in', playFilm:'Play with sound', resumeFilm:'Resume film', pauseFilm:'Pause', muteFilm:'Mute', unmuteFilm:'Turn sound on',
     title: 'Sign in to Research Workspace', brand: 'Research Workspace', signIn: 'Sign in', signUp: 'Create account',
     heading: 'Sign in', intro: 'Use the email address approved for your research workspace.',
@@ -49,6 +57,10 @@ const copy = {
     retry: 'The request could not be completed. Please try again.'
   },
   ar: {
+    google:'المتابعة باستخدام Google', or:'أو', showPassword:'إظهار كلمة المرور', hidePassword:'إخفاء كلمة المرور',
+    googleUnavailable:'تسجيل الدخول باستخدام Google بانتظار التفعيل من مالك المساحة.',
+    googleFailed:'تعذّر إكمال تسجيل الدخول باستخدام Google. حاول مجددًا.',
+    googleCancelled:'تم إلغاء تسجيل الدخول باستخدام Google. يمكنك المحاولة مجددًا.',
     skipFilm:'تخطَّ إلى تسجيل الدخول', playFilm:'تشغيل مع الصوت', resumeFilm:'متابعة التشغيل', pauseFilm:'إيقاف مؤقت', muteFilm:'كتم الصوت', unmuteFilm:'تشغيل الصوت',
     title: 'تسجيل الدخول إلى مساحة البحث', brand: 'مساحة البحث', signIn: 'دخول', signUp: 'إنشاء حساب',
     heading: 'تسجيل الدخول', intro: 'سجّل الدخول باستخدام عنوان البريد الإلكتروني المعتمد لمساحة البحث.',
@@ -77,6 +89,7 @@ const apiMessages = {
   'לא ניתן ליצור חשבון כרגע. בדקו את הכתובת והסיסמה.': 'wrongSignup',
   'הכניסה לא הצליחה. בדקו את הפרטים ואמתו את כתובת הדוא״ל.': 'wrongLogin',
   'חיבור המרחב עדיין לא הוגדר': 'service',
+  'החיבור ל־Google ממתין להפעלה בידי בעל המרחב.': 'googleUnavailable',
   'יש לבחור מרחב מחקר בהגדרות החיבור המקומי': 'workspace',
   'מקור בקשה לא מורשה': 'origin',
   'הבקשה גדולה מדי': 'tooLarge'
@@ -84,6 +97,8 @@ const apiMessages = {
 
 const mark = "<svg viewBox=\"0 0 40 40\" aria-hidden=\"true\" focusable=\"false\"><rect width=\"40\" height=\"40\" rx=\"13\" fill=\"#374963\"/><g transform=\"rotate(-28 20 20)\"><ellipse cx=\"20\" cy=\"20\" rx=\"16\" ry=\"8\" fill=\"none\" stroke=\"#aabfda\" stroke-width=\"1.4\"/><circle cx=\"20\" cy=\"20\" r=\"6.4\" fill=\"#f6b1ce\"/><path d=\"M4 20a16 8 0 0 0 32 0\" fill=\"none\" stroke=\"#e395af\" stroke-width=\"1.7\"/><circle cx=\"32.6\" cy=\"15.2\" r=\"2.1\" fill=\"#f5eff8\"/></g></svg>";
 const globe = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg>';
+const eye = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="password-slash" d="m4 4 16 16"/></svg>';
+const googleMark = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M22.5 12.2c0-.7-.1-1.4-.2-2.1H12v4h5.9a5.2 5.2 0 0 1-2.2 3.2 6.4 6.4 0 1 1-1.2-11l3-3A10.8 10.8 0 1 0 22.5 12.2Z"/></svg>';
 const themes = '<svg class="moon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M20.5 14.6a8.8 8.8 0 0 1-11-11 9 9 0 1 0 11 11Z"/></svg><svg class="sun" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M19 5l-1.5 1.5m-11 11L5 19"/></svg>';
 
 const initialize = `(() => {
@@ -106,7 +121,7 @@ function localized(key) {
   return '<span data-copy="' + key + '">' + escapeHtml(copy.he[key]) + '</span>';
 }
 
-export function authPage({pending = false, email = '', confirmed = false, entrance = true} = {}) {
+export function authPage({pending = false, email = '', confirmed = false, entrance = true, notice = ''} = {}) {
   const showEntrance = entrance && !pending && !confirmed;
   const content = pending
     ? `<h1>${localized('pending')}</h1><p class="lead">${localized('signedIn')} <bdi class="account">${escapeHtml(email)}</bdi></p><p class="notice">${localized('pendingInfo')}</p><button class="action" id="logout" type="button">${localized('logout')}</button>`
@@ -114,9 +129,9 @@ export function authPage({pending = false, email = '', confirmed = false, entran
        ${confirmed ? '<p class="notice">' + localized('confirmed') + '</p>' : ''}
        <form id="login" method="post" action="/auth/login">
          <div class="fields"><label>${localized('email')}<input name="email" type="email" required autocomplete="username" placeholder="name@example.com"></label>
-         <label>${localized('password')}<input name="password" type="password" required minlength="8" autocomplete="current-password"></label></div>
+         <div class="password-field"><label for="login-password">${localized('password')}</label><span class="password-input"><input id="login-password" name="password" dir="ltr" type="password" required minlength="8" autocomplete="current-password"><button id="password-toggle" type="button" aria-controls="login-password" aria-pressed="false" aria-label="${copy.he.showPassword}" title="${copy.he.showPassword}">${eye}</button></span></div></div>
          <div class="actions"><button type="submit" class="action">${localized('signIn')}</button><button type="button" class="action secondary" id="signup">${localized('signUp')}</button></div>
-       </form><p class="note">${localized('access')}</p>`;
+       </form><div class="social-login"><div class="login-separator">${localized('or')}</div><button type="button" class="action google-action" id="google-signin">${googleMark}${localized('google')}</button></div><p class="note">${localized('access')}</p>`;
 
   return `<!doctype html>
 <html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${copy.he.title}</title>
@@ -126,7 +141,7 @@ ${showEntrance ? "document.documentElement.dataset.entrance='ready';" : ''}</scr
 <header><div class="brand">${mark}${localized('brand')}</div><div class="preferences">
 <label class="control">${globe}<select id="language" aria-label="${copy.he.language}"><option value="he" lang="he">עברית</option><option value="ar" lang="ar">العربية</option><option value="en" lang="en">English</option></select></label>
 <button id="theme" class="control theme" type="button" aria-label="${copy.he.dark}" title="${copy.he.dark}">${themes}</button></div></header>
-<main><div class="spread"><section class="paper"><div class="form-content">${content}<p id="message" role="status" aria-live="polite"></p></div></section>
+<main><div class="spread"><section class="paper"><div class="form-content">${content}<p id="message" role="status" aria-live="polite" data-error="${Boolean(notice)}"></p></div></section>
 <aside class="atlas">${fieldDiagram}<div class="atlas-caption"><h2>${localized('atlas')}</h2><p>${localized('atlasIntro')}</p></div></aside></div></main></div>
 <script>
 (() => {
@@ -137,7 +152,17 @@ ${showEntrance ? "document.documentElement.dataset.entrance='ready';" : ''}</scr
   const themeControl = document.querySelector('#theme');
   const message = document.querySelector('#message');
   const form = document.querySelector('#login');
-  let messageKey = '';
+  const passwordInput = document.querySelector('#login-password');
+  const passwordToggle = document.querySelector('#password-toggle');
+  const orbital = document.querySelector('.field-diagram');
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  function updateOrbitalMotion() {
+    if (!orbital) return;
+    if (reducedMotion.matches) orbital.pauseAnimations(); else orbital.unpauseAnimations();
+  }
+  reducedMotion.addEventListener('change', updateOrbitalMotion);
+  updateOrbitalMotion();
+  let messageKey = ${JSON.stringify(notice)};
   const translate = key => dictionary[root.lang][key];
   function remember(key, value) {
     try { localStorage.setItem(key, value); } catch {}
@@ -150,6 +175,11 @@ ${showEntrance ? "document.documentElement.dataset.entrance='ready';" : ''}</scr
     const themeLabel = translate(root.dataset.theme === 'dark' ? 'light' : 'dark');
     themeControl.setAttribute('aria-label', themeLabel);
     themeControl.title = themeLabel;
+    if (passwordToggle) {
+      const label = translate(passwordInput.type === 'password' ? 'showPassword' : 'hidePassword');
+      passwordToggle.setAttribute('aria-label', label);
+      passwordToggle.title = label;
+    }
     document.querySelectorAll('[data-copy]').forEach(node => {
       node.textContent = translate(node.dataset.copy);
     });
@@ -195,6 +225,17 @@ ${showEntrance ? "document.documentElement.dataset.entrance='ready';" : ''}</scr
       buttons.forEach(button => { button.disabled = false; });
     }
   }
+  if (passwordToggle) passwordToggle.addEventListener('click', event => {
+    event.preventDefault();
+    const start = passwordInput.selectionStart, end = passwordInput.selectionEnd;
+    const visible = passwordInput.type === 'password';
+    passwordInput.type = visible ? 'text' : 'password';
+    passwordToggle.setAttribute('aria-pressed', String(visible));
+    if (event.detail) passwordInput.focus({preventScroll:true});
+    passwordInput.setSelectionRange(start, end);
+    refreshLabels();
+  });
+  document.querySelector('#google-signin')?.addEventListener('click', () => action('/auth/google'));
   if (form) {
     for (const input of form.querySelectorAll('input')) {
       input.addEventListener('input', () => input.setCustomValidity(''));
