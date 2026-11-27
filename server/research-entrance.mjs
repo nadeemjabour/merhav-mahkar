@@ -2,7 +2,7 @@ export function entranceMarkup(mark, localized) {
   return `<section id="entrance" aria-labelledby="entrance-name">
   <div class="entrance-bar"><div class="brand" id="entrance-name">${mark}${localized('brand')}</div><button type="button" data-skip>${localized('skipFilm')}</button></div>
   <div class="entrance-stage"><svg width="0" height="0" class="entrance-grade" aria-hidden="true"><defs><filter id="entrance-palette" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="table" tableValues=".125 .259 .443 .667 .890 .965 1"/><feFuncG type="table" tableValues=".173 .329 .522 .749 .584 .694 .945"/><feFuncB type="table" tableValues=".259 .447 .659 .855 .686 .808 .969"/></feComponentTransfer></filter></defs></svg>
-    <video playsinline preload="none" data-src="/media/research-space-loop.mp4" data-storage="https://qzqclvzvddudbkdqoihg.supabase.co/storage/v1/object/public/videos/hero/research-space-loop.mp4" poster="/media/research-space-poster.webp" aria-hidden="true"></video>
+    <video muted playsinline preload="none" data-src="/media/research-space-loop.mp4" data-storage="https://qzqclvzvddudbkdqoihg.supabase.co/storage/v1/object/public/videos/hero/research-space-loop.mp4" poster="/media/research-space-poster.webp" aria-hidden="true"></video>
   </div>
   <div class="entrance-console"><div class="entrance-progress" aria-hidden="true"><i></i></div><div class="entrance-controls">
     <button type="button" data-play><span class="play-icon" aria-hidden="true"></span><span class="when-paused"><span class="when-new">${localized('playFilm')}</span><span class="when-started">${localized('resumeFilm')}</span></span><span class="when-playing">${localized('pauseFilm')}</span></button>
@@ -59,7 +59,9 @@ export function startEntrance() {
       else recover();
     });
   }
-  sound.title = sound.querySelector('span.when-audible').textContent;
+  video.muted = true;
+  screen.dataset.muted = 'true';
+  sound.title = sound.querySelector('span.when-muted').textContent;
   skip.addEventListener('click',finish);
   play.addEventListener('click',() => video.paused ? playClip() : video.pause());
   sound.addEventListener('click',() => { video.muted = !video.muted; });
