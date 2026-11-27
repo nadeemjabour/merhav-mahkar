@@ -187,4 +187,68 @@ html[data-entrance="leaving"] #entrance { position:fixed; inset:0; z-index:30; o
 .social-login.google-only { margin-top:1.75rem; }
 .social-login.google-only .google-action { min-height:54px; background:var(--primary); border-color:var(--primary); color:var(--on-primary); box-shadow:0 8px 22px -12px #9d5068; }
 .social-login.google-only .google-action:hover { filter:brightness(.95); }
+
+/* A light orbital scene sits behind the glass sign-in panel. */
+body {
+  min-height:100svh; overflow-x:clip; isolation:isolate;
+  background:
+    radial-gradient(ellipse at 16% 33%,#f6c9dcaa 0,transparent 34%),
+    radial-gradient(ellipse at 87% 70%,#9db3d3aa 0,transparent 38%),
+    linear-gradient(145deg,#dce6f3 0%,#eef2f9 45%,#c8d6e9 100%);
+}
+:root[data-theme="dark"] body {
+  background:
+    radial-gradient(ellipse at 17% 32%,#874c6a6b 0,transparent 36%),
+    radial-gradient(ellipse at 87% 70%,#627da66b 0,transparent 39%),
+    linear-gradient(145deg,#1f304a 0%,#172337 52%,#2a3a54 100%);
+}
+.cosmos { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+.cosmos-map { display:block; width:100%; height:100%; transform:translate3d(var(--space-x,0px),var(--space-y,0px),0) scale(1.035); transition:transform 1.2s ease-out; }
+.cosmos-mobile-planet { display:none; }
+html[data-entrance] .cosmos { opacity:0; }
+html[data-entrance="leaving"] .cosmos { opacity:1; animation:entrance-login-reveal 1.1s ease-in-out both; }
+.shell { position:relative; z-index:1; width:min(1280px,calc(100% - 5rem)); }
+.shell header { border-color:#8296b632; }
+main { padding-block:clamp(1.5rem,5vh,4rem); }
+.spread {
+  grid-template-columns:minmax(370px,.85fr) minmax(0,1.15fr); gap:clamp(2rem,5vw,5.5rem);
+  align-items:center; overflow:visible; min-height:0; border:0; border-radius:0; background:transparent; box-shadow:none;
+}
+.paper {
+  width:100%; max-width:500px; justify-self:center; padding:clamp(2.2rem,4vw,3.6rem);
+  background:#fcfdffdf; border:1px solid #ffffffd6; border-radius:32px;
+  box-shadow:0 34px 95px -45px #334d7585,0 8px 32px #7185a81c;
+  -webkit-backdrop-filter:blur(22px); backdrop-filter:blur(22px);
+}
+:root[data-theme="dark"] .paper { background:#233149e8; border-color:#aabfda4d; box-shadow:0 34px 90px -40px #070e1cab; }
+.atlas { align-items:center; overflow:visible; width:100%; padding:0; background:transparent; color:#273a59; }
+:root[data-theme="dark"] .atlas { color:#f4f6ff; }
+.field-diagram { width:min(100%,590px); max-height:420px; filter:drop-shadow(0 24px 26px #4359793b); }
+.atlas-caption { text-align:center; justify-items:center; margin:0; gap:.55rem; }
+.atlas-caption h2 { font-size:clamp(2.6rem,4.6vw,4.25rem); font-weight:700; letter-spacing:-.04em; }
+.atlas-caption p { color:#536a89; font-size:1rem; max-width:31ch; }
+:root[data-theme="dark"] .atlas-caption p { color:#d3e0f0; }
+@media (max-width:760px) {
+  .shell { width:min(100% - 2rem,560px); }
+  main { padding-block:.8rem 2rem; }
+  .spread { grid-template-columns:1fr; gap:.9rem; }
+  .atlas { grid-row:1; display:grid; grid-template-columns:1fr minmax(110px,37%); min-height:150px; padding:.25rem .45rem; }
+  .atlas-caption { grid-row:1; grid-column:1; justify-items:start; text-align:start; }
+  .atlas-caption h2 { font-size:1.85rem; }
+  .atlas-caption p { font-size:.88rem; }
+  .field-diagram { grid-row:1; grid-column:2; width:100%; max-height:170px; }
+  .paper { max-width:none; padding:1.7rem 1.4rem; border-radius:26px; }
+  .cosmos-map { opacity:.18; }
+  .cosmos-mobile-planet { display:block; position:absolute; border-radius:50%; box-shadow:0 12px 24px #455a7b45; }
+  .cosmos-mobile-planet-one { width:64px; height:64px; top:9%; left:-15px; background:radial-gradient(circle at 29% 22%,#fff7fc,#f6b1ce 39%,#9d5068 95%); animation:space-float 15s ease-in-out infinite; }
+  .cosmos-mobile-planet-two { width:38px; height:38px; right:-8px; top:43%; background:radial-gradient(circle at 28% 20%,#f7fbff,#aabfda 40%,#526585 96%); animation:space-float 18s -7s ease-in-out infinite; }
+  .cosmos-mobile-planet-three { width:78px; height:78px; left:-30px; bottom:6%; background:radial-gradient(circle at 28% 20%,#fff8ff,#e7c8df 38%,#7185a8 98%); animation:space-float 20s -10s ease-in-out infinite; }
+}
+@media (max-width:375px) { .shell { width:calc(100% - 1rem); } }
+@keyframes space-float { 0%,100% { transform:translate3d(0,0,0); } 50% { transform:translate3d(12px,-18px,0); } }
+@media (prefers-reduced-motion:reduce) {
+  .cosmos-map { transition:none; transform:none; }
+  .cosmos-mobile-planet { animation:none; }
+  html[data-entrance="leaving"] .cosmos { animation-duration:.18s; }
+}
 `;

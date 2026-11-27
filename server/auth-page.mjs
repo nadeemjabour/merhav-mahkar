@@ -2,6 +2,7 @@ import { mountEntranceTitle } from './entrance-particles.mjs';
 import { entranceMarkup, startEntrance } from './research-entrance.mjs';
 import { fieldDiagram } from './auth-art.mjs';
 import { authStyle } from './auth-style.mjs';
+import { loginCosmos } from './login-cosmos.mjs';
 
 export const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -138,7 +139,7 @@ export function authPage({pending = false, email = '', confirmed = false, entran
 <html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${copy.he.title}</title>
 <script>${initialize}
 ${showEntrance ? "document.documentElement.dataset.entrance='ready';" : ''}</script><style>${authStyle}</style></head>
-<body>${showEntrance ? entranceMarkup(mark, localized) : ''}<div class="shell">
+<body>${showEntrance ? entranceMarkup(mark, localized) : ''}${loginCosmos}<div class="shell">
 <header><div class="brand">${mark}${localized('brand')}</div><div class="preferences">
 <label class="control">${globe}<select id="language" aria-label="${copy.he.language}"><option value="he" lang="he">עברית</option><option value="ar" lang="ar">العربية</option><option value="en" lang="en">English</option></select></label>
 <button id="theme" class="control theme" type="button" aria-label="${copy.he.dark}" title="${copy.he.dark}">${themes}</button></div></header>
@@ -155,12 +156,30 @@ ${showEntrance ? "document.documentElement.dataset.entrance='ready';" : ''}</scr
   const form = document.querySelector('#login');
   const passwordInput = document.querySelector('#login-password');
   const passwordToggle = document.querySelector('#password-toggle');
-  const orbital = document.querySelector('.field-diagram');
+  const orbitals = document.querySelectorAll('.field-diagram, .cosmos-map');
+  const sky = document.querySelector('.cosmos-map');
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  let parallaxFrame = 0, pointerX = 0, pointerY = 0;
   function updateOrbitalMotion() {
-    if (!orbital) return;
-    if (reducedMotion.matches) orbital.pauseAnimations(); else orbital.unpauseAnimations();
+    orbitals.forEach(orbital => {
+      if (reducedMotion.matches) orbital.pauseAnimations(); else orbital.unpauseAnimations();
+    });
+    if (reducedMotion.matches && sky) {
+      sky.style.setProperty('--space-x', '0px');
+      sky.style.setProperty('--space-y', '0px');
+    }
   }
+  window.addEventListener('pointermove', event => {
+    if (!sky || reducedMotion.matches || event.pointerType !== 'mouse') return;
+    pointerX = (event.clientX / innerWidth - .5) * 18;
+    pointerY = (event.clientY / innerHeight - .5) * 18;
+    if (!parallaxFrame) parallaxFrame = requestAnimationFrame(() => {
+      parallaxFrame = 0;
+      if (reducedMotion.matches) return;
+      sky.style.setProperty('--space-x', pointerX.toFixed(1) + 'px');
+      sky.style.setProperty('--space-y', pointerY.toFixed(1) + 'px');
+    });
+  }, {passive:true});
   reducedMotion.addEventListener('change', updateOrbitalMotion);
   updateOrbitalMotion();
   let messageKey = ${JSON.stringify(notice)};
