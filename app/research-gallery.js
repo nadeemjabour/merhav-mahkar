@@ -18,15 +18,22 @@ function changeGalleryMode(mode) {
   document.querySelector('[data-gallery-mode][aria-pressed="true"]')?.focus({preventScroll:true});
 }
 
+function galleryPapers() {
+  return view === 'dashboard' && !paperId ? deskFilteredPapers() : sorted(S.papers);
+}
+
 function researchLibrary() {
-  const papers = sorted(S.papers);
+  const papers = galleryPapers();
   const mode = galleryMode();
   const toggles = galleryLayouts.map(([key,label]) =>
     `<button type="button" data-gallery-mode="${key}" aria-pressed="${key === mode}"
       onclick="changeGalleryMode(this.dataset.galleryMode)">${uiText(label)}</button>`).join('');
+  const motion = view === 'dashboard' && mode === 'carousel' && papers.length
+    ? `<button type="button" data-motion-toggle ${deskReduced.matches ? 'disabled' : ''} onclick="toggleDeskMotion()">${esc(deskMotionLabel())}</button>`
+    : '';
   const header = `<header class="gallery-tools"><div class="gallery-switch" role="group"
     aria-label="${uiText('תצוגת מחקרים')}">${toggles}</div>
-    ${action(uiText('＋ מחקר חדש'),"edit('papers')",'primary')}</header>`;
+    <div class="gallery-tools-actions">${motion}${action(uiText('＋ מחקר חדש'),"edit('papers')",'primary')}</div></header>`;
   if (!papers.length) {
     return header + empty(uiText(S.papers.length ? 'לא נמצאו מחקרים התואמים לסינון' :
       'המרחב מוכן למחקר הראשון שלכם. הוסיפו מאמר, פרקים ומשימות.'));
@@ -45,13 +52,19 @@ function galleryNeighbor(paper, position, label) {
     <span class="gallery-edge-arrow" aria-hidden="true">${position === 'prev' ? '‹' : '›'}</span></button>`;
 }
 
+function gallerySelectionIndex(papers) {
+  return Math.max(0, papers.findIndex(p => p.id === galleryPaperId));
+}
+
 function researchCarousel(papers) {
-  const index = Math.max(0, papers.findIndex(p => p.id === galleryPaperId));
+  const index = gallerySelectionIndex(papers);
   const paper = papers[index];
-  galleryPaperId = paper.id;
   const {n, total, pct} = progress(paper);
   const number = new Intl.NumberFormat(uiLocale());
-  const percent = new Intl.NumberFormat(uiLocale(), {style:'percent'}).format(pct / 100);
+  const onDesk = view === 'dashboard' && !paperId;
+  const meter = onDesk
+    ? deskProgressGlobe(pct)
+    : `<div class="gallery-ring" style="--arc:${pct*3.6}deg"><b dir="ltr">${new Intl.NumberFormat(uiLocale(), {style:'percent'}).format(pct / 100)}</b></div>`;
   const circular = papers.length > 2;
   const previous = papers[index - 1] || (circular ? papers.at(-1) : null);
   const following = papers[index + 1] || (circular ? papers[0] : null);
@@ -61,7 +74,7 @@ function researchCarousel(papers) {
     const hint = uiText(label) + (target ? ' · ' + target.title : '');
     return `<button type="button" data-gallery-step="${step}" aria-label="${esc(hint)}" title="${esc(hint)}" ${target ? '' : 'disabled'}><span aria-hidden="true">${step < 0 ? '‹' : '›'}</span></button>`;
   }
-  return `<section class="research-gallery" tabindex="0" aria-label="${uiText('קרוסלת מחקרים')}"
+  return `<section class="research-gallery" data-gallery-current="${esc(paper.id)}" tabindex="0" aria-label="${uiText('קרוסלת מחקרים')}"
     onkeydown="galleryKey(event)" onclick="galleryClick(event)"
     ontouchstart="galleryTouchStart(event)" ontouchend="galleryTouchEnd(event)" ontouchcancel="galleryGesture=null">
     <div class="gallery-stage" data-single="${papers.length === 1}">
@@ -70,11 +83,12 @@ function researchCarousel(papers) {
         <div class="gallery-sheet-head"><bdi>${esc(paper.code)}</bdi>${badge(paper.work)}${late(paper)}</div>
         <div class="gallery-sheet-middle"><div><h2 id="gallery-heading" dir="auto">${esc(paper.title)}</h2>
           <div class="gallery-metadata">${[paper.status && displayChoice(paper.status,statuses),paper.due && uiText('יעד')+' '+date(paper.due),paper.language && uiPaperLanguage(paper.language)].filter(Boolean).map(esc).join(' · ')}</div>
-        </div><div class="gallery-progress"><div class="gallery-ring" style="--arc:${pct*3.6}deg"><b dir="ltr">${percent}</b></div>
+        </div><div class="gallery-progress">${meter}
           <small>${number.format(n)}/${number.format(total)} ${uiText('משימות ופרקים הושלמו')}</small></div></div>
         <div class="gallery-task"><span>${uiText('הצעד הבא:')}</span><strong dir="auto">${esc(task)}</strong></div>
         <footer class="gallery-actions"><button type="button" data-gallery-action="open">${uiText('פתיחת מחקר ←')}</button>
-          <button type="button" data-gallery-action="edit">${uiText('✎ עריכת מחקר')}</button></footer>
+          <button type="button" data-gallery-action="edit">${uiText('✎ עריכת מחקר')}</button>
+          ${onDesk ? `<button type="button" data-gallery-action="task">${uiText('＋ משימה')}</button>` : ''}</footer>
       </article>
       ${galleryNeighbor(following,'next','המחקר הבא')}
     </div>
@@ -88,15 +102,18 @@ function researchCarousel(papers) {
 
 function selectGalleryPaper(id, focusTarget) {
   const gallery = document.querySelector('.research-gallery');
-  if (!gallery || !id || galleryPaperId === id) return;
-  const papers = sorted(S.papers);
+  if (!gallery || !id || gallery.dataset.galleryCurrent === id) return;
+  const papers = galleryPapers();
   const to = papers.findIndex(p => p.id === id);
   if (to < 0) return;
+  const from = deskGlobeFill(gallery.querySelector('.desk-dial'));
   galleryPaperId = id;
+  gallery.dataset.galleryCurrent = id;
   const template = document.createElement('template');
   template.innerHTML = researchCarousel(papers);
   const updated = template.content.firstElementChild;
   gallery.querySelector('.gallery-stage').replaceWith(updated.querySelector('.gallery-stage'));
+  animateDeskGlobe(gallery.querySelector('.desk-dial'), from);
   gallery.querySelector('output').innerHTML = updated.querySelector('output').innerHTML;
   gallery.querySelector('select').value = galleryPaperId;
   for (const button of gallery.querySelectorAll('[data-gallery-step]')) {
@@ -111,8 +128,8 @@ function selectGalleryPaper(id, focusTarget) {
 }
 
 function stepGallery(by, focusTarget) {
-  const papers = sorted(S.papers);
-  const index = papers.findIndex(p => p.id === galleryPaperId);
+  const papers = galleryPapers();
+  const index = gallerySelectionIndex(papers);
   const target = papers.length > 2 ? (index + by + papers.length) % papers.length : index + by;
   selectGalleryPaper(papers[target]?.id, focusTarget);
 }
@@ -122,8 +139,10 @@ function galleryClick(event) {
   if (!button) return;
   if (button.dataset.galleryId) return selectGalleryPaper(button.dataset.galleryId, 'stage');
   if (button.dataset.galleryStep) return stepGallery(Number(button.dataset.galleryStep), button.dataset.galleryStep);
-  if (button.dataset.galleryAction === 'open') openPaper(galleryPaperId);
-  if (button.dataset.galleryAction === 'edit') edit('papers',galleryPaperId);
+  const id = event.currentTarget.dataset.galleryCurrent;
+  if (button.dataset.galleryAction === 'open') openPaper(id);
+  if (button.dataset.galleryAction === 'edit') edit('papers',id);
+  if (button.dataset.galleryAction === 'task') edit('tasks',null,{paperId:id});
 }
 
 function galleryKey(event) {
@@ -132,7 +151,7 @@ function galleryKey(event) {
   if (!['ArrowRight','ArrowLeft','Home','End'].includes(event.key)) return;
   event.preventDefault();
   if (event.key === 'Home' || event.key === 'End') {
-    const papers = sorted(S.papers);
+    const papers = galleryPapers();
     return selectGalleryPaper(papers.at(event.key === 'Home' ? 0 : -1)?.id, 'stage');
   }
   stepGallery((event.key === 'ArrowRight' ? 1 : -1) * (rtl ? -1 : 1), 'stage');

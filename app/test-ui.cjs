@@ -124,3 +124,28 @@ assert.equal((run('activityTimeline()').match(/class="activity-timeline-item"/g)
 assert.match(run('activityTimeline()'),/Show more activity/);
 run('window.activityLimit=40');
 assert.equal((run('activityTimeline()').match(/class="activity-timeline-item"/g)||[]).length,21);
+
+
+// Browsing the combined library must not inherit another screen's filters or alter progress.
+run(`S.papers=[
+  {id:'p1',code:'R1',title:'First study',status:'כתיבה',language:'עברית',updated:'2026-11-25'},
+  {id:'p2',code:'R2',title:'Second study',status:'תכנון',language:'עברית',updated:'2026-11-20'}];
+  S.tasks=[{id:'t1',paperId:'p1',status:'הושלם'},{id:'t2',paperId:'p1',status:'לביצוע'}];
+  S.chapters=[{id:'c1',paperId:'p1',status:'הושלם'},{id:'c2',paperId:'p1',status:'כתיבה'}];
+  view='dashboard';paperId='';q='unrelated-task-filter';filter='other-status';sort='due';window.paperLayout='carousel';`);
+assert.equal(run('galleryPapers().length'),2);
+assert.equal(run('q'),'unrelated-task-filter');
+assert.equal(run('filter'),'other-status');
+assert.equal(run('sort'),'due');
+assert.equal(run("progress(S.papers[0]).pct"),50);
+assert.match(run('researchLibrary()'),/50%/);
+console.log('PASS: unified research desk keeps library filters isolated and progress consistent.');
+
+/* The globe represents the same completed tasks and chapters as the library. */
+for (const [completed,total,expected] of [[0,4,0],[2,4,50],[4,4,100]]) {
+  run(`S.tasks=Array.from({length:${total}},(_,i)=>({id:'orb-'+i,paperId:'p1',status:i<${completed}?'הושלם':'לביצוע'}));S.chapters=[];`);
+  const html=run('renderDeskLibrary()');
+  assert.match(html,new RegExp('role="progressbar"[^>]*aria-valuenow="'+expected+'"'));
+  assert.match(html,new RegExp('--fill:'+expected+'%'));
+}
+console.log('PASS: the 3D globe exposes and fills to the actual completion percentage.');

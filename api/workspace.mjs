@@ -1,3 +1,4 @@
+import {randomBytes,createHash} from 'node:crypto';
 import {SupabaseBucket} from '../server/supabase-bucket.mjs';
 import {authPage,escapeHtml} from '../server/auth-page.mjs';
 
@@ -20,12 +21,20 @@ export function createHandler({env=process.env,fetcher=fetch,loadWorker=()=>impo
    for(const [name,value,age] of [['rw-access',session?.access_token,session?.expires_in||3600],['rw-refresh',session?.refresh_token,2592000]])
     setCookies.push(name+'='+encodeURIComponent(value||'')+'; Path=/; HttpOnly; SameSite=Lax'+secure+'; Max-Age='+(value?age:0));
   };
+  const setOAuthCookie=(flow,verifier='')=>{
+   setCookies.push('rw-oauth-'+flow+'='+verifier+'; Path=/auth/callback; HttpOnly; SameSite=Lax'+secure+'; Max-Age='+(verifier?600:0));
+  };
   const finish=r=>{const headers=new Headers(r.headers);headers.set('Cache-Control','private, no-store');headers.set('X-Content-Type-Options','nosniff');headers.set('Referrer-Policy','same-origin');headers.set('X-Frame-Options','DENY');for(const cookie of setCookies)headers.append('Set-Cookie',cookie);return new Response(r.body,{status:r.status,headers});};
-  const page=options=>new Response(authPage(options),{headers:{'Content-Type':'text/html; charset=utf-8'}});
+  const googleOnly=env.GOOGLE_SIGN_IN_ONLY==='true';
+  const page=options=>new Response(authPage({...options,googleOnly}),{headers:{'Content-Type':'text/html; charset=utf-8'}});
   try {
    if(!['GET','HEAD','POST'].includes(request.method))return finish(json({error:'Method not allowed'},405));
    if(request.method==='POST'&&request.headers.get('origin')!==url.origin)return finish(json({error:'מקור בקשה לא מורשה'},403));
-   if((path==='/auth/login'||path==='/auth/signup')&&request.method!=='POST')return finish(page({entrance:false}));
+   if((path==='/auth/login'||path==='/auth/signup')&&request.method!=='POST') {
+    const outcome=url.searchParams.get('auth');
+    const notice=outcome==='google-failed'?'googleFailed':outcome==='google-cancelled'?'googleCancelled':'';
+    return finish(page({entrance:false,notice}));
+   }
    const {SUPABASE_URL:base,SUPABASE_PUBLISHABLE_KEY:key,RESEARCH_WORKSPACE_ID:configuredWorkspace}=env;
    let workspace=configuredWorkspace;
    if(!base||!key||(!workspace&&!discoverWorkspace))return finish(json({error:'חיבור המרחב עדיין לא הוגדר'},503));
@@ -33,7 +42,42 @@ export function createHandler({env=process.env,fetcher=fetch,loadWorker=()=>impo
     const r=await fetcher(base+'/auth/v1/'+endpoint,{method:body?'POST':'GET',headers:{apikey:key,...(token?{Authorization:'Bearer '+token}:{}),...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
     const data=await r.json().catch(()=>({}));return {ok:r.ok,status:r.status,data};
    };
+   if(path==='/auth/google') {
+    if(request.method!=='POST')return finish(json({error:'Method not allowed'},405));
+    const response=await fetcher(base+'/auth/v1/settings',{headers:{apikey:key}});
+    const settings=await response.json();
+    if(!response.ok)throw Error('Google configuration unavailable');
+    if(!settings.external?.google)return finish(json({error:'החיבור ל־Google ממתין להפעלה בידי בעל המרחב.'},409));
+    const flow=randomBytes(16).toString('hex');
+    const verifier=randomBytes(32).toString('base64url');
+    const callback=new URL('/auth/callback',url.origin);
+    callback.searchParams.set('flow',flow);
+    const authorize=new URL(base+'/auth/v1/authorize');
+    authorize.searchParams.set('provider','google');
+    authorize.searchParams.set('redirect_to',callback.href);
+    authorize.searchParams.set('code_challenge',createHash('sha256').update(verifier).digest('base64url'));
+    authorize.searchParams.set('code_challenge_method','s256');
+    setOAuthCookie(flow,verifier);
+    return finish(json({redirect:authorize.href}));
+   }
+   if(path==='/auth/callback') {
+    if(request.method!=='GET')return finish(json({error:'Method not allowed'},405));
+    const flow=url.searchParams.get('flow')||'';
+    const validFlow=/^[a-f0-9]{32}$/.test(flow);
+    const verifier=validFlow?cookies.get('rw-oauth-'+flow)||'':'';
+    if(validFlow)setOAuthCookie(flow);
+    const failure=reason=>finish(new Response(null,{status:303,headers:{Location:'/auth/login?auth='+reason}}));
+    const providerError=url.searchParams.get('error');
+    if(providerError)return failure(providerError==='access_denied'?'google-cancelled':'google-failed');
+    const code=url.searchParams.get('code')||'';
+    if(!validFlow||!/^[A-Za-z0-9_-]{43,128}$/.test(verifier)||!code||code.length>2048)return failure('google-failed');
+    const exchanged=await auth('token?grant_type=pkce',{auth_code:code,code_verifier:verifier}).catch(()=>null);
+    if(!exchanged?.ok||!exchanged.data.access_token||!exchanged.data.refresh_token)return failure('google-failed');
+    setSession(exchanged.data);
+    return finish(new Response(null,{status:303,headers:{Location:'/'}}));
+   }
    if(path==='/auth/login'||path==='/auth/signup') {
+    if(googleOnly)return finish(json({error:'הכניסה למרחב זמינה באמצעות Google בלבד.'},403));
     const text=await request.text();if(text.length>10000)return finish(json({error:'הבקשה גדולה מדי'},413));
     const b=JSON.parse(text),email=String(b.email||'').trim().toLowerCase(),password=String(b.password||'');
     if(!email.includes('@')||password.length<8)return finish(json({error:'יש להזין דוא״ל וסיסמה באורך 8 תווים לפחות'},400));

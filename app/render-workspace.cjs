@@ -11,12 +11,12 @@ module.exports = function renderWorkspace({legacyInterface = false} = {}) {
   if (!html.includes(headMarker) || !html.includes(scriptMarker)) {
     throw new Error('Missing research workspace asset marker');
   }
-  const styles = ['workspace-theme.css', 'studio-design.css', 'studio-chrome.css', 'research-gallery.css', 'research-chat.css', 'dashboard-desk.css', 'file-cabinet.css', 'backup-center.css', 'task-workbench.css', 'research-sections.css']
+  const styles = ['workspace-theme.css', 'studio-design.css', 'studio-chrome.css', 'research-gallery.css', 'research-chat.css', 'dashboard-desk.css', 'file-cabinet.css', 'backup-center.css', 'task-workbench.css', 'research-sections.css', 'dashboard-orbit.css']
     .map(name => '<style id="' + name.replace('.css', '') + '">\n' + scalableType(read(name)) + '\n</style>');
   const preferences = ['studio-core-locales.js', 'studio-module-locales.js', 'studio-preferences.js']
     .map(name => '<script id="' + name.replace('.js', '') + '">\n' + read(name) + '\n</script>');
   return html
     .replace('<body>', legacyInterface ? '<body data-legacy-interface>' : '<body>')
     .replace(headMarker, () => [...styles, ...preferences].join('\n'))
-    .replace(scriptMarker, () => [read('aurora-studio.js'), read('studio-visuals.js'), read('research-gallery.js'), read('research-chat-ui.js'), read('dashboard-desk.js'), read('file-cabinet.js'), read('backup-center.js'), read('task-workbench.js'), read('research-sections.js')].join('\n'));
+    .replace(scriptMarker, () => [read('aurora-studio.js'), read('studio-visuals.js'), read('research-gallery.js'), read('research-chat-ui.js'), read('dashboard-desk.js'), read('dashboard-orbit.js'), read('file-cabinet.js'), read('backup-center.js'), read('task-workbench.js'), read('research-sections.js')].join('\n'));
 };

@@ -613,7 +613,6 @@ html[data-theme="dark"] {
   html body.dashboard-view .workspace-top .desk-intro { border:0; padding:clamp(1.2rem,2vw,2rem) .2rem; }
   html body.dashboard-view .desk-intro h2 { font-family:var(--orbital-font); font-weight:700; letter-spacing:-.035em; }
   html body main .desk-deck,html body main .cab-first { border-radius:23px; }
-  html body main .desk-instrument { background-image:radial-gradient(ellipse at 18% 90%,#536989,transparent 70%); }
   html body main .desk-dial { outline:1px solid #aabfda52; outline-offset:10px; }
   html body main .sectionhead { border-color:var(--orbital-edge); }
   html body main :is(.tabs,.gallery-switch) { border-radius:18px; }

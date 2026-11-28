@@ -130,6 +130,19 @@ function mountEdgeRail(rail) {
     });
     area.addEventListener('pointerleave',()=>{ if(desktop.matches) maybeClose(); });
   }
+  rail.addEventListener('click', event => {
+    const navigation = event.composedPath().find(node =>
+      node instanceof Element && (node.hasAttribute('data-workspace-section') || node.hasAttribute('data-statistics')));
+    if (!desktop.matches || !navigation) return;
+    setOpen(false);
+    if (event.detail === 0) {
+      const target = document.querySelector('#desk-library-title') || document.querySelector('#title');
+      if (target) {
+        if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex','-1');
+        target.focus({preventScroll:true});
+      }
+    }
+  });
   menu.addEventListener('click', () => {
     returnButton = menu;
     setOpen(true);
